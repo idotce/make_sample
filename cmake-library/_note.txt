@@ -1,0 +1,12 @@
+dumpbin /exports libtest.dll
+
+dumpbin /symbols libtest.lib
+
+编译静态库时 可 #define CAPI_EXPORT __declspec(dllimport)  也可 #define CAPI_EXPORT
+但编译exe引用这个库时一定要 #define CAPI_EXPORT 为空
+
+
+#mfc
+set(CMAKE_MFC_FLAG 1)
+#add_definitions(-DUNICODE -D_UNICODE)
+add_definitions(-D_AFXDLL)

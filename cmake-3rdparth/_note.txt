@@ -1,0 +1,53 @@
+静态库
+#define CURL_STATICLIB
+#include "curl/curl.h"
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "wldap32.lib")
+#pragma comment(lib, "crypt32.lib")
+
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include <GL/glew.h>
+
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#pragma comment(lib, "opengl32.lib")
+
+#
+git clone --branch 4.6.0 https://github.com/opencv/opencv
+  modify opencv\cmake\OpenCVDownload.cmake
+    #execute_process(COMMAND "${CMAKE_COMMAND}" -E tar xzf "${CACHE_CANDIDATE}"
+    execute_process(COMMAND 7za x "${CACHE_CANDIDATE}"
+  modify opencv\modules\objdetect\test\test_qrcode_encode.cpp
+    std::string input_infos[testing_versions] = {"\x82\xb1\x82\xf1\x82\xc9\x82\xbf\x82\xcd\x90\xa2\x8a\x45",
+                                             "\x82\xa8\x95\xa0\x82\xaa\x8b\xf3\x82\xa2\x82\xc4\x82\xa2\x82\xdc\x82\xb7",
+                                             "\x82\xb1\x82\xf1\x82\xc9\x82\xbf\x82\xcd\x81\x41\x8e\x84\x82\xcd\x8f\xad\x82\xb5\x93\xfa\x96\x7b\x8c\xea\x82\xf0\x98\x62\x82\xb5\x82\xdc\x82\xb7"
+                                            };
+        删掉注释
+
+#
+git clone -b r2.6 https://github.com/tensorflow/tensorflow
+  modify tensorflow\tensorflow\lite\c\c_api_types.h
+    delete #elif  TFL_STATIC_LIBRARY_BUILD
+
+#
+git clone -b curl-7_84_0  https://github.com/curl/curl
+目前有个问题 重编发现 libcurl 会找到 opencv 里的 zlib,造成编译错误
+注掉这行解决#optional_dependency(ZLIB)
+
+#
+git clone -b glew-cmake-2.2.0 https://github.com/Perlmint/glew-cmake
+  modify CMakeLists.txt
+if(glew-cmake_BUILD_STATIC)
+    install(TARGETS libglew_static DESTINATION bin)
+endif()
+
+if(glew-cmake_BUILD_SHARED)
+    install(TARGETS libglew_shared DESTINATION bin)
+endif()
+
+#
+git clone -b 3.3.8 https://github.com/glfw/glfw
+
+#
+git clone -b 1.9.5 https://github.com/open-source-parsers/jsoncpp
