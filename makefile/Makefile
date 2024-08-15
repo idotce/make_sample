@@ -1,5 +1,8 @@
 TARGET = test
 
+# android apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+# CROSS_COMPILE=aarch64-linux-gnu- make
+
 PWDDIR = $(shell pwd)
 
 OBJ_DIR = obj
@@ -9,9 +12,9 @@ MKDIR = mkdir
 RMDIR = rm -r -f
 #RMDIR = rmdir /q /s
 
-CC = gcc
-CXX = g++
-LD = g++
+CC = $(CROSS_COMPILE)gcc
+CXX = $(CROSS_COMPILE)g++
+LD = $(CROSS_COMPILE)g++
 
 DEFINES = \
 	-D_GNU_SOURCE
@@ -32,7 +35,7 @@ CXXFLAGS = \
 	$(INCLUDES)
 
 LDFLAGS = \
-	$(LIBS)
+	$(LIBS) -static
 
 C_FILES = $(wildcard *.c src/*.c)
 CXX_FILES = $(wildcard *.cpp src/*.cpp)
