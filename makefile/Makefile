@@ -1,7 +1,18 @@
 TARGET = test
 
-# android apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-# CROSS_COMPILE=aarch64-linux-gnu- make
+# android (/data/local/tmp/)
+# aarch64-linux-gnu-
+# apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+# -g -O3 -mcpu=cortex-a53 -Wall
+
+# cortex-a7
+# arm-linux-gnueabi-
+# arm-linux-gnueabihf-
+# apt install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
+# -g -O3 -mcpu=cortex-a7 -mfpu=neon -Wall
+# -g -O3 -mcpu=cortex-a7 -mfpu=neon -mfloat-abi=hard -Wall
+
+CROSS_COMPILE=aarch64-linux-gnu-
 
 PWDDIR = $(shell pwd)
 
@@ -19,18 +30,19 @@ LD = $(CROSS_COMPILE)g++
 DEFINES = \
 	-D_GNU_SOURCE
 
-INCLUDES =
+INCLUDES = \
+	-I.
 
 LIBS =
 #LIBS = -lgdi32 -lopengl32 -lglu32
 
 CFLAGS = \
-	-g -O2 -Wall -std=c99 \
+	-g -O3 -mcpu=cortex-a53 -Wall -std=c99 \
 	$(DEFINES) \
 	$(INCLUDES)
 
 CXXFLAGS = \
-	-g -O2 -Wall -std=c++11 \
+	-g -O3 -mcpu=cortex-a53 -Wall -std=c++11 \
 	$(DEFINES) \
 	$(INCLUDES)
 
