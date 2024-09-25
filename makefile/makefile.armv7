@@ -2,7 +2,7 @@
 CROSS_COMPILE = arm-linux-gnueabihf-
 
 CFLAGS = $(DEFINES) $(INCLUDES) \
-	-O3 -Wall -std=c99
+	-O3 -Wall -std=c99 -mcpu=cortex-a7 -mfpu=neon -mfloat-abi=hard
 
 CXXFLAGS = $(DEFINES) $(INCLUDES) \
 	-O3 -Wall -std=c++11 -mcpu=cortex-a7 -mfpu=neon -mfloat-abi=hard
