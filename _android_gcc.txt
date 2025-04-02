@@ -1,3 +1,22 @@
 https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
 https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-gnueabi/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabi.tar.xz
 https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-gnueabihf/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+Android
+
+adb push test /data/local/tmp
+adb shell "sh -c 'chmod a+x /data/local/tmp/test; /data/local/tmp/test'"
+
+
+aarch64-linux-gnu-
+apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+-O3 -mcpu=cortex-a53 -Wall
+
+arm-linux-gnueabi-
+apt install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
+-O3 -mcpu=cortex-a7 -mfpu=neon -Wall
+
+arm-linux-gnueabihf-
+apt install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+-O3 -mcpu=cortex-a7 -mfpu=neon -mfloat-abi=hard -Wall
+
