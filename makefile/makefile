@@ -1,52 +1,80 @@
-CC=gcc
-CFLAGS=-c -Wall
-LDFLAGS=
-SRCS_APP=main.app.c
-SRCS_BOOT=main.boot.c
-INCLUDE_DIRS=-I .
+#PWDDIR = $(shell pwd)
+#ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+TARGET = test
+OUTDIR = out
 
-ifeq ($(OS),Windows_NT)
-	SRCS_APP+=hid-win.c
-	SRCS_APP+=rs232.c
-	SRCS_BOOT+=hid-win.c
-	SRCS_BOOT+=rs232.c
-	LIBS=-lsetupapi -lhid
+ifeq ($(OS), Windows_NT)
+	MKDIR = mkdir
+	RMDIR = rd /q /s
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Darwin)
-		SRCS_APP+=hid-mac.c
-		SRCS_APP+=rs232.c
-		SRCS_BOOT+=hid-mac.c
-		SRCS_BOOT+=rs232.c
-		LIBS=-framework IOKit -framework CoreFoundation
-	else
-		SRCS_APP+=hid-libusb.c
-		SRCS_APP+=rs232.c
-		SRCS_BOOT+=hid-libusb.c
-		SRCS_BOOT+=rs232.c
-		LIBS=`pkg-config libusb-1.0 --libs` -lrt -lpthread
-		INCLUDE_DIRS+=`pkg-config libusb-1.0 --cflags`
-		CFLAGS+=-std=gnu99
-		LDFLAGS+=-no-pie
-		endif
+	MKDIR = mkdir
+	RMDIR = rm -rf
 endif
 
-OBJS_APP=$(SRCS_APP:.c=.o)
-OBJS_BOOT=$(SRCS_BOOT:.c=.o)
+ARCH ?=
+CROSS_COMPILE ?=
+CC = $(CROSS_COMPILE)gcc
+CXX = $(CROSS_COMPILE)g++
+LD = $(CROSS_COMPILE)g++
 
-EXEC_APP = hid.app.exe
-EXEC_BOOT = hid.boot.exe
+DEFINES = \
+	-D_GNU_SOURCE
 
-all: $(SRCS_APP) $(SRCS_BOOT) $(EXEC_APP) $(EXEC_BOOT)
+INCLUDES = \
+	-I.
 
-$(EXEC_APP): $(OBJS_APP)
-	$(CC) $(LDFLAGS) $(OBJS_APP) $(LIBS) -o $@
+LIBS =
+#LIBS = -lgdi32 -lopengl32 -lglu32
 
-$(EXEC_BOOT): $(OBJS_BOOT)
-	$(CC) $(LDFLAGS) $(OBJS_BOOT) $(LIBS) -o $@
+CFLAGS = $(DEFINES) $(INCLUDES) \
+	-O3 -Wall -std=c99
 
-.c.o:
-	$(CC) $(CFLAGS) $(INCLUDE_DIRS) $< -o $@
+CXXFLAGS = $(DEFINES) $(INCLUDES) \
+	-O3 -Wall -std=c++11
+
+LDFLAGS = $(LIBS)
+
+ifneq ($(ARCH),)
+	include makefile.$(ARCH)
+endif
+
+C_FILES = src/main.c # $(wildcard *.c src/*.c)
+CXX_FILES = # $(wildcard *.cpp src/*.cpp)
+OBJ_FILES = $(addprefix $(OUTDIR)/, $(C_FILES:.c=.o) $(CXX_FILES:.cpp=.o))
+
+ifeq ($(OS), Windows_NT)
+	# C_FILES += src/hid-win.c
+	# LIBS = -lsetupapi -lhid
+	LDFLAGS += -static
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S), Darwin)
+		# C_FILES += src/hid-mac.c
+		# LIBS = -framework IOKit -framework CoreFoundation
+	else
+		# C_FILES += src/hid-libusb.c # src/hid-linux.c
+		# INCLUDES += `pkg-config libusb-1.0 --cflags`
+		# LIBS = `pkg-config libusb-1.0 --libs` -lrt -lpthread -ludev
+		CFLAGS += -std=gnu99
+		LDFLAGS += -no-pie
+	endif
+endif
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ_FILES)
+	$(LD) -o $(OUTDIR)/$@ $^ $(LDFLAGS)
+
+$(OUTDIR)/%.o: %.c
+	@${MKDIR} -p ${dir ${@}}
+	$(CC) -o $@ -c $< $(CFLAGS)
+
+$(OUTDIR)/%.o: %.cpp
+	@${MKDIR} -p ${dir ${@}}
+	$(CXX) -o $@ -c $< $(CXXFLAGS)
 
 clean:
-	rm -f $(OBJS_APP) $(OBJS_BOOT) $(EXEC_APP) $(EXEC_APP).exe $(EXEC_BOOT) $(EXEC_BOOT).exe
+	@${RMDIR} ${OUTDIR}
+
+install:
+	@ERROR

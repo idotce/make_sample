@@ -1,0 +1,10 @@
+
+
+### ios
+BINROOT = $(shell xcode-select -p)/usr/bin
+LD = $(BINROOT)/gcc
+IOSMIN = 7.1
+SDKROOT = $(shell xcrun --sdk iphoneos --show-sdk-path)
+CC = clang -arch armv7 -arch arm64 -miphoneos-version-min=$(IOSMIN) -isysroot $(SDKROOT)
+CXX = clang++ -arch armv7 -arch arm64 -miphoneos-version-min=$(IOSMIN) -isysroot $(SDKROOT)
+LD = clang -arch armv7 -arch arm64 -miphoneos-version-min=$(IOSMIN) -isysroot $(SDKROOT)

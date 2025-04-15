@@ -1,5 +1,0 @@
-
-BINROOT = $(shell xcode-select -p)/usr/bin
-
-
-LD = $(BINROOT)/gcc
