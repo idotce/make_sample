@@ -4,10 +4,10 @@ TARGET = base
 OUTDIR = out
 
 ARCH ?=
-CROSS_COMPILE ?=
-CC = $(CROSS_COMPILE)gcc
-CXX = $(CROSS_COMPILE)g++
-LD = $(CROSS_COMPILE)g++
+CROSS ?=
+CC = $(CROSS)gcc
+CXX = $(CROSS)g++
+LD = $(CROSS)g++
 
 DEFINES = \
 	-D_GNU_SOURCE
