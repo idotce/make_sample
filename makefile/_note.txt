@@ -1,4 +1,11 @@
 
+ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SRC_DIR := ./src
+MAIN := $(SRC_DIR)/main.c
+SRCS := $(shell find $(SRC_DIR)/ -name *.c ! -wholename $(MAIN))
+INC_FLAGS := $(addprefix -I, $(shell find $(SRC_DIRS) -type d ! -regex '\(.*\/\.git.*\|.\)'))
+RELS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.rel, $(SRCS))
+
 
 ### ios
 BINROOT = $(shell xcode-select -p)/usr/bin

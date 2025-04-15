@@ -1,15 +1,7 @@
-#PWDDIR = $(shell pwd)
-#ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-TARGET = test
+PWDDIR = $(shell pwd)
+ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+TARGET = base
 OUTDIR = out
-
-ifeq ($(OS), Windows_NT)
-	MKDIR = mkdir
-	RMDIR = rd /q /s
-else
-	MKDIR = mkdir
-	RMDIR = rm -rf
-endif
 
 ARCH ?=
 CROSS_COMPILE ?=
@@ -46,6 +38,9 @@ ifeq ($(OS), Windows_NT)
 	# C_FILES += src/hid-win.c
 	# LIBS = -lsetupapi -lhid
 	LDFLAGS += -static
+	#
+	MKDIR = mkdir -p
+	RMDIR = rmdir /s /q
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S), Darwin)
@@ -58,23 +53,37 @@ else
 		CFLAGS += -std=gnu99
 		LDFLAGS += -no-pie
 	endif
+	#
+	MKDIR = mkdir -p
+	RMDIR = rm -rf
 endif
 
+.PHONY: all
 all: $(TARGET)
 
 $(TARGET): $(OBJ_FILES)
 	$(LD) -o $(OUTDIR)/$@ $^ $(LDFLAGS)
 
-$(OUTDIR)/%.o: %.c
+$(OUTDIR)/%.o: %.c $(OUTDIR)
 	@${MKDIR} -p ${dir ${@}}
 	$(CC) -o $@ -c $< $(CFLAGS)
 
-$(OUTDIR)/%.o: %.cpp
+$(OUTDIR)/%.o: %.cpp $(OUTDIR)
 	@${MKDIR} -p ${dir ${@}}
 	$(CXX) -o $@ -c $< $(CXXFLAGS)
 
+$(OUTDIR):
+	@${MKDIR} $@
+
+.PHONY: clean
 clean:
 	@${RMDIR} ${OUTDIR}
 
-install:
-	@ERROR
+.PHONY: test
+test:
+	@echo PWDDIR = [$(PWDDIR)]
+	@echo ROOTDIR = [$(ROOTDIR)]
+	@echo OS = [$(OS)]
+	@echo UNAME_S = [$(UNAME_S)]
+	@echo windir = [$(windir)]
+	@echo WINDIR= [$(WINDIR)]
