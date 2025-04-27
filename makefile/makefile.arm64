@@ -1,5 +1,5 @@
 
-CROSS_COMPILE = aarch64-linux-gnu-
+CROSS = aarch64-linux-gnu-
 
 CFLAGS = $(DEFINES) $(INCLUDES) \
 	-O3 -Wall -std=c99 -mcpu=cortex-a53
