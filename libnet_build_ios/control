@@ -1,0 +1,8 @@
+Package: libnet
+Name: Libnet
+Version: 1.1.6-1
+Architecture: iphoneos-arm
+Description: libnet provides a portable framework for low-level network packet construction.
+Depiction: http://wpper.com/libnet.php
+Maintainer: idotce <idotce@gmail.com>
+Section: Libraries

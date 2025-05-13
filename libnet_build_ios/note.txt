@@ -1,0 +1,8 @@
+#
+# git clone https://github.com/sam-github/libnet
+# download from http://sourceforge.net/projects/libnet-dev/files/libnet-1.1.6.tar.gz/download
+#
+
+./make.sh libnet-1.1.6.tar.gz
+
+./deb.sh
