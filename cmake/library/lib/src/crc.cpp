@@ -1,19 +1,8 @@
 #include <iostream>
+#include <cstdint>
 #include "crc.h"
 
 using namespace std;
-
-// CRC16_CCITT：      多项式x16+x12+x5+1（0x1021-0x8408），初始值0x0000，低位在前，高位在后，结果与0x0000异或
-// CRC16_CCITT_FALSE：多项式x16+x12+x5+1（0x1021-0x8408），初始值0xFFFF，低位在后，高位在前，结果与0x0000异或
-// CRC16_XMODEM：     多项式x16+x12+x5+1（0x1021-0x8408），初始值0x0000，低位在后，高位在前，结果与0x0000异或
-// CRC16_X25：        多项式x16+x12+x5+1（0x1021-0x8408），初始值0x0000，低位在前，高位在后，结果与0xFFFF异或
-// CRC16_MODBUS：     多项式x16+x15+x5+1（0x8005-0xa001），初始值0xFFFF，低位在前，高位在后，结果与0x0000异或
-// CRC16_IBM：        多项式x16+x15+x5+1（0x8005-0xa001），初始值0x0000，低位在前，高位在后，结果与0x0000异或
-// CRC16_MAXIM：      多项式x16+x15+x5+1（0x8005-0xa001），初始值0x0000，低位在前，高位在后，结果与0xFFFF异或
-// CRC16_USB：        多项式x16+x15+x5+1（0x8005-0xa001），初始值0xFFFF，低位在前，高位在后，结果与0xFFFF异或
-
-// https://crccalc.com/
-// https://www.sohu.com/a/353749128_505888
 
 extern "C" {
 

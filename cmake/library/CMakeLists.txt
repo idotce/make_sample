@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(cmake_test) # Change this line.
 
-include_directories(library/_install/include)
-link_directories(library/_install/lib)
+include_directories(lib/inc)
+link_directories(lib/_msys)
 
 aux_source_directory(src SRC_LIST)
 add_executable(${PROJECT_NAME} ${SRC_LIST})

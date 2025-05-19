@@ -1,6 +1,103 @@
-﻿#include <iostream>
+#include <iostream>
+#include <cstring>
+#include <cstdint>
 
 using namespace std;
+
+//### Apple ###
+
+const unsigned char ascii_table[34] = {
+    '0','1','2','3','4','5','6','7','8','9',
+    'A','B','C','D','E','F','G','H','J','K',
+    'L','M','N','P','Q','R','S','T','U','V',
+    'W','X','Y','Z'
+};
+
+void ascii_crc(uint8_t *buff, int len)
+{
+    unsigned int value = 0;
+    int table_len = 34;
+
+    for (int i=0; i<16; i++) {
+        int cidx = 0;
+        for (int idx=0; idx<table_len; idx++) {
+            if (buff[i] == ascii_table[idx]) {
+                cidx = idx;
+                break;
+            }
+        }
+        value = value + cidx + cidx * (i%2) * 2;
+    }
+
+    if (value%table_len == 0) {
+        buff[16] = 0x30;
+    }
+    else {
+        buff[16] = ascii_table[table_len - (value%table_len)];
+    }
+}
+
+int addCheckDigit(char *serialNumber) {
+    static char digits[] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    int length = strlen(serialNumber);
+    int radix = 34; // always base 34
+    int total = 0; // Start total at 0
+    int index; // loop counter
+
+    // Loop over characters from right to left with the rightmost character being odd
+    for (index = 1; index <= length; ++index) {
+        char digit = serialNumber[length - index];
+        char *foundDigit = strchr(digits, digit);
+        if (!foundDigit) { // Invalid digit, check digit can't be calculated
+            printf("Invalid digit %d %c!\n", index, digit);
+            return 0;
+        }
+        int value = foundDigit - digits;
+        if ((index & 1) == 1) { // odd digit, add 3 times value
+            total += 3*value;
+        } else { // even digit, just add value
+            total += value;
+        }
+    }
+
+    // Compute and append check digit
+    int checkValue = total % radix;
+    printf("checkValue:%d!\n", checkValue);
+    char checkDigit = (checkValue > 0) ? digits[radix - checkValue] : '0';
+    serialNumber[length] = checkDigit;
+    serialNumber[length+1] = '\0';
+    return 1;
+}
+
+int verifyCheckDigit(const char *serialNumber) {
+    static char digits[] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    int length = strlen(serialNumber);
+    int radix = 34; // always base 34
+    int total = 0; // Start total at 0
+    int index; // loop counter
+
+    // Loop over characters from right to left with the rightmost character being even
+    for (index = 0; index < length; ++index) {
+        char digit = serialNumber[length - index - 1];
+        char *foundDigit = strchr(digits, digit);
+        if (!foundDigit) {
+            // Invalid digit, check digit can't be calculated
+            printf("Invalid digit!\n");
+            return 0;
+        }
+        int value = foundDigit - digits;
+        if ((index & 1) == 1) {
+            // odd digit, add 3 times value
+            total += 3*value;
+        } else { // even digit, just add value
+            total += value;
+        }
+    }
+    // verify that total is an even multiple of radix
+    return (total % radix) == 0;
+}
+
+//### CRC ###
 
 #define SWAP16(A) ((((uint16_t)(A)&0xff00)>>8)|(((uint16_t)(A)&0x00ff)<<8))
 #define SWAP32(A) ((((uint32_t)(A)&0xff000000)>>24)|(((uint32_t)(A)&0x00ff0000)>>8)|(((uint32_t)(A)&0x0000ff00)<<8)|(((uint32_t)(A)&0x000000ff)<<24))
@@ -119,13 +216,24 @@ uint16_t crc8(uint8_t *buffer, int offset, int len)
 
 int main(int argc, char* argv[])
 {
+    //### Apple ###
+    char test1[20] = "DWH3244TYNJFAKQC"; // U
+    char test2[20] = "FGJ0293BMKWLX7PA"; // P
+
+    addCheckDigit((char *)test1);
+    //ascii_crc(test1, 17);
+    printf("%s\n", test1);
+    addCheckDigit((char *)test2);
+    //ascii_crc(test2, 17);
+    printf("%s\n", test2);
+
+    //### CRC ###
     uint32_t reg = 0x01020304;
     uint8_t *pReg = (uint8_t *)&reg;
     uint32_t nreg = SWAP32(reg);
     uint8_t *pnReg = (uint8_t *)&nreg;
     int numOfReg = 4;
     int index = numOfReg;
-
 #ifdef USE_TEST
     while (index--) {
         printf("%d    0x%02x\r\n", index, pReg[index]);
@@ -138,15 +246,13 @@ int main(int argc, char* argv[])
     printf("use_test = no");
 #endif
     printf("0x%04x\r\n", check_crc(test, 0, sizeof(test)));
-
     uint8_t dat3[3] = {0x74, 0x00, 0x02}; // 0x248a
     uint16_t test3 = crc16(dat3, 0, 3);
     printf("0x%04x\n", test3);
-
     uint8_t dat4[3] = {0x74, 0x00, 0x02}; // 0x64, 0x2f
     uint16_t test4 = crc8(dat4, 0, 3);
     printf("0x%02x\n", test4);
-
+    //
     system("PAUSE");
     return EXIT_SUCCESS;
 }

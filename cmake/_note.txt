@@ -1,0 +1,11 @@
+cmake -G
+
+# win
+mkdir _win && cd _win
+cmake .. -A x64 -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX=_win -DUSE_TEST=OFF
+cmake --build . --config Release
+
+# msys2
+mkdir _msys; cd _msys
+cmake .. -G "MSYS Makefiles" -DCMAKE_INSTALL_PREFIX=_msys -DUSE_TEST=OFF
+make
