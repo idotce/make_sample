@@ -42,10 +42,14 @@ ifeq ($(OS), Windows_NT)
 	MKDIR = mkdir -p
 	RMDIR = rmdir /s /q
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S), Darwin)
+	UNAME_A := $(shell uname -a)
+	ifneq (,$(findstring Darwin, $(UNAME_A)))
 		# C_FILES += src/hid-mac.c
 		# LIBS = -framework IOKit -framework CoreFoundation
+	endif
+	ifneq (,$(findstring android, $(UNAME_A)))
+		CFLAGS += -std=gnu99
+		LDFLAGS += -fPIE -pie
 	else
 		# C_FILES += src/hid-libusb.c # src/hid-linux.c
 		# INCLUDES += `pkg-config libusb-1.0 --cflags`
@@ -87,3 +91,11 @@ test:
 	@echo UNAME_S = [$(UNAME_S)]
 	@echo windir = [$(windir)]
 	@echo WINDIR= [$(WINDIR)]
+
+.PHONY: install
+install:
+ifeq ($(OS), Windows_NT)
+else
+	@cp ${OUTDIR}/$(TARGET) ~/
+	@chmod a+x ~/$(TARGET)
+endif
