@@ -1,4 +1,6 @@
 cmake -G
+cmake . -B _out
+cmake --build _out
 
 # win
 mkdir _win && cd _win
