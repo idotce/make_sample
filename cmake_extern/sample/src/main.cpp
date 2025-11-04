@@ -1,89 +1,82 @@
+// src/main.cpp - ç®€åŒ–ç‰ˆæœ¬
 #include <iostream>
-#include "opencv2/opencv.hpp"
-#include "opencv2/core/version.hpp"
+#include <string>
+
+// æµ‹è¯•å®å®šä¹‰
+#define TEST_OPENCV 1
+#define TEST_CURL 1
+#define TEST_JSON 1
+
+#if TEST_OPENCV
+#include <opencv2/opencv.hpp>
+#endif
+
+#if TEST_CURL
+#include <curl/curl.h>
+#endif
+
+#if TEST_JSON
+#include <json/json.h>
+#endif
 
 int main() {
-    // ´òÓ¡OpenCV°æ±¾ĞÅÏ¢£¨¶àÖÖ·½Ê½£©
-    std::cout << "=== OpenCV °æ±¾ĞÅÏ¢ ===" << std::endl;
-    std::cout << "CV_VERSION: " << CV_VERSION << std::endl;
-    std::cout << "getVersionString: " << cv::getVersionString() << std::endl;
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
 
-    #ifdef OPENCV_VERSION
-    std::cout << "OPENCV_VERSION: " << OPENCV_VERSION << std::endl;
-    #endif
+    std::cout << "=== åº“åŠŸèƒ½æµ‹è¯• ===" << std::endl;
 
-    #ifdef OPENCV_VERSION_MAJOR
-    std::cout << "°æ±¾: " << OPENCV_VERSION_MAJOR << "."
-              << OPENCV_VERSION_MINOR << "."
-              << OPENCV_VERSION_PATCH << std::endl;
-    #endif
+    bool all_success = true;
 
-    // ¼ì²éÄ£¿éÊÇ·ñ¿ÉÓÃ
-    std::cout << "\n=== Ä£¿é¼ì²é ===" << std::endl;
-    #ifdef HAVE_OPENCV_IMGCODECS
-    std::cout << "IMGCODECSÄ£¿é: ¿ÉÓÃ" << std::endl;
-    #else
-    std::cout << "IMGCODECSÄ£¿é: ²»¿ÉÓÃ" << std::endl;
-    #endif
-
-    #ifdef HAVE_OPENCV_IMGPROC
-    std::cout << "IMGPROCÄ£¿é: ¿ÉÓÃ" << std::endl;
-    #else
-    std::cout << "IMGPROCÄ£¿é: ²»¿ÉÓÃ" << std::endl;
-    #endif
-
-    // ¶ÁÈ¡Í¼Æ¬
-    std::cout << "\n=== Í¼Æ¬´¦Àí ===" << std::endl;
-    cv::Mat image = cv::imread("input.jpg");
-
-    // ¼ì²éÍ¼Æ¬ÊÇ·ñ³É¹¦¼ÓÔØ
-    if (image.empty()) {
-        std::cerr << "´íÎó: ÎŞ·¨¼ÓÔØÍ¼Æ¬ 'input.jpg'" << std::endl;
-        std::cerr << "ÇëÈ·±£:" << std::endl;
-        std::cerr << "1. Í¼Æ¬ÎÄ¼ş´æÔÚÓÚµ±Ç°Ä¿Â¼" << std::endl;
-        std::cerr << "2. OpenCV±àÒëÊ±°üº¬ÁËÕıÈ·µÄÍ¼Ïñ±à½âÂëÆ÷" << std::endl;
-        return -1;
+#if TEST_OPENCV
+    std::cout << "\n1. æµ‹è¯• OpenCV..." << std::endl;
+    try {
+        cv::Mat test_image(100, 100, CV_8UC3, cv::Scalar(0, 255, 0));
+        std::cout << "   OpenCV å·¥ä½œæ­£å¸¸ (å›¾åƒå°ºå¯¸: " << test_image.cols << "x" << test_image.rows << ")" << std::endl;
+    } catch (...) {
+        std::cout << "   OpenCV æµ‹è¯•å¤±è´¥" << std::endl;
+        all_success = false;
     }
+#endif
 
-    std::cout << "Í¼Æ¬¼ÓÔØ³É¹¦!" << std::endl;
-    std::cout << "Í¼Æ¬³ß´ç: " << image.cols << " x " << image.rows << std::endl;
-    std::cout << "Í¨µÀÊı: " << image.channels() << std::endl;
-    std::cout << "Êı¾İÀàĞÍ: " << image.type() << std::endl;
-
-    // ×ª»»Îª»Ò¶ÈÍ¼
-    cv::Mat grayImage;
-    cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
-
-    std::cout << "»Ò¶ÈÍ¼×ª»»Íê³É!" << std::endl;
-    std::cout << "»Ò¶ÈÍ¼³ß´ç: " << grayImage.cols << " x " << grayImage.rows << std::endl;
-    std::cout << "»Ò¶ÈÍ¼Í¨µÀÊı: " << grayImage.channels() << std::endl;
-
-    // ±£´æ»Ò¶ÈÍ¼
-    bool success = cv::imwrite("gray_image.jpg", grayImage);
-
-    if (success) {
-        std::cout << "»Ò¶ÈÍ¼ÒÑ±£´æÎª 'gray_image.jpg'" << std::endl;
+#if TEST_CURL
+    std::cout << "\n2. æµ‹è¯• libcurl..." << std::endl;
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    CURL* curl = curl_easy_init();
+    if(curl) {
+        std::cout << "   libcurl åˆå§‹åŒ–æˆåŠŸ" << std::endl;
+        curl_easy_cleanup(curl);
     } else {
-        std::cerr << "´íÎó: ÎŞ·¨±£´æ»Ò¶ÈÍ¼" << std::endl;
-        std::cerr << "Çë¼ì²éĞ´È¨ÏŞºÍ´ÅÅÌ¿Õ¼ä" << std::endl;
-        return -1;
+        std::cout << "   libcurl åˆå§‹åŒ–å¤±è´¥" << std::endl;
+        all_success = false;
+    }
+    curl_global_cleanup();
+#endif
+
+#if TEST_JSON
+    std::cout << "\n3. æµ‹è¯• jsoncpp..." << std::endl;
+    try {
+        Json::Value root;
+        root["test"] = "success";
+        root["number"] = 42;
+        std::cout << "   jsoncpp å·¥ä½œæ­£å¸¸" << std::endl;
+        std::cout << "   ç¤ºä¾‹ JSON: " << root.toStyledString() << std::endl;
+    } catch (...) {
+        std::cout << "   jsoncpp æµ‹è¯•å¤±è´¥" << std::endl;
+        all_success = false;
+    }
+#endif
+
+    std::cout << "\n=== æµ‹è¯•ç»“æœ ===" << std::endl;
+    if(all_success) {
+        std::cout << "âœ“ æ‰€æœ‰åº“åŠŸèƒ½æ­£å¸¸!" << std::endl;
+    } else {
+        std::cout << "âœ— éƒ¨åˆ†åº“å­˜åœ¨é—®é¢˜" << std::endl;
     }
 
-    // ÏÔÊ¾¹¹½¨ĞÅÏ¢
-    std::cout << "\n=== ¹¹½¨ĞÅÏ¢ ===" << std::endl;
-    std::cout << "¹¹½¨±àÒëÆ÷: " << cv::getBuildInformation().substr(0, 200) << "..." << std::endl;
+    std::cout << "\næŒ‰å›è½¦é”®é€€å‡º...";
+    std::cin.get();
 
-    // ¿ÉÑ¡£ºÏÔÊ¾Ô­Í¼ºÍ»Ò¶ÈÍ¼
-    std::cout << "\n=== ÏÔÊ¾Í¼Æ¬ ===" << std::endl;
-    cv::namedWindow("Ô­Í¼", cv::WINDOW_AUTOSIZE);
-    cv::namedWindow("»Ò¶ÈÍ¼", cv::WINDOW_AUTOSIZE);
-
-    cv::imshow("Ô­Í¼", image);
-    cv::imshow("»Ò¶ÈÍ¼", grayImage);
-
-    std::cout << "°´ÈÎÒâ¼ü¹Ø±Õ´°¿Ú..." << std::endl;
-    cv::waitKey(0);
-
-    std::cout << "³ÌĞòÖ´ĞĞÍê³É!" << std::endl;
-    return 0;
+    return all_success ? 0 : 1;
 }

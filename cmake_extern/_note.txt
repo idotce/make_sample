@@ -1,3 +1,7 @@
+注意事项
+因为项目需要用到这几个，所以都需要统一MT运行时 -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+allinone是之前编译方式，把几个库和sample一起编译，但是现在不用这种方式了
+
 #
 ###
 git clone --branch 4.6.0 https://github.com/opencv/opencv
@@ -6,13 +10,16 @@ mkdir _build && cd _build
 cmake .. ^
  -G "Visual Studio 16 2019" ^
  -D CMAKE_BUILD_TYPE=Release ^
+ -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
  -D BUILD_SHARED_LIBS=OFF ^
  -D BUILD_opencv_world=ON ^
  -D OPENCV_FORCE_3RDPARTY_BUILD=ON ^
  -D BUILD_EXAMPLES=OFF ^
  -D BUILD_TESTS=OFF ^
  -D BUILD_PERF_TESTS=OFF ^
- -D WITH_IPP=OFF ^
+ -D WITH_IPP=ON ^
+ -D OPENCV_IPP=ON ^
+ -D ENABLE_IPPICV=ON ^
  -D CMAKE_INSTALL_PREFIX=../../extern/opencv
 cmake --build . --config Release --target INSTALL
 
@@ -24,10 +31,11 @@ mkdir _build && cd _build
 cmake .. ^
  -G "Visual Studio 16 2019" ^
  -D CMAKE_BUILD_TYPE=Release ^
+ -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
  -D BUILD_STATIC_LIBS=ON ^
  -D BUILD_SHARED_LIBS=OFF ^
  -D JSONCPP_WITH_TESTS=OFF ^
- -D JSONCPP_STATIC_WINDOWS_RUNTIME=OFF ^
+ -D JSONCPP_STATIC_WINDOWS_RUNTIME=ON ^
  -D CMAKE_INSTALL_PREFIX=../../extern/jsoncpp
 cmake --build . --config Release --target INSTALL
 
@@ -39,6 +47,7 @@ mkdir _build && cd _build
 cmake .. ^
  -G "Visual Studio 16 2019" ^
  -D CMAKE_BUILD_TYPE=Release ^
+ -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
  -D BUILD_STATIC_LIBS=ON ^
  -D BUILD_SHARED_LIBS=OFF ^
  -D CURL_STATIC_CRT=ON ^

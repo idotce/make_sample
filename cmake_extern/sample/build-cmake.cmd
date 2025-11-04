@@ -1,12 +1,13 @@
-@ECHO OFF
+@echo off
+chcp 65001 >nul
 
-SET BUILD_DIR=_build
-SET CMAKE_BIN="c:\cmake\bin\cmake.exe"
-SET CMAKE_CONFIG="Visual Studio 16 2019"
+set BUILD_DIR=_build
+set CMAKE_BIN="c:\cmake\bin\cmake.exe"
+set CMAKE_CONFIG="Visual Studio 16 2019"
 
-SET PROJ_DIR=%~dp0
-SET PROJ_NAME=sample
-SET PORJ_CMAKE_OPT= -D CMAKE_BUILD_TYPE=Release ^
+set PROJ_DIR=%~dp0
+set PROJ_NAME=sample
+set PORJ_CMAKE_OPT= -D CMAKE_BUILD_TYPE=Release ^
 
 :MAIN
 cls
@@ -17,13 +18,13 @@ echo. x - Exit.
 echo.
 
 :MENU
-set /p mainmenu=ÇëÑ¡Ôñ¹¦ÄÜ:
+set /p mainmenu=è¯·é€‰æ‹©åŠŸèƒ½:
 if '%mainmenu%'=='1' (goto MAIN_CMAKE)
 if '%mainmenu%'=='2' (goto MAIN_BUILD)
 if '%mainmenu%'=='3' (goto MAIN_CLEAN)
 if '%mainmenu%'=='x' exit
 echo.
-echo.ÇëÑ¡ÔñÒ»¸öÓÐÐ§µÄ¹¦ÄÜ,°´ÈÎÒâ¼ü·µ»Ø!
+echo.è¯·é€‰æ‹©ä¸€ä¸ªæœ‰æ•ˆçš„åŠŸèƒ½,æŒ‰ä»»æ„é”®è¿”å›ž!
 pause
 goto MAIN
 
@@ -43,6 +44,6 @@ rd /q /s %PROJ_DIR%\%BUILD_DIR%
 goto PAUSE_MENU
 
 :PAUSE_MENU
-echo.²Ù×÷Íê³É£¬°´ÈÎÒâ¼ü·µ»ØÖ÷²Ëµ¥!
+echo.æ“ä½œå®Œæˆï¼ŒæŒ‰ä»»æ„é”®è¿”å›žä¸»èœå•!
 pause >nul
 goto MAIN
