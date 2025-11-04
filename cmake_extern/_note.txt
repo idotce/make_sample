@@ -1,5 +1,5 @@
-# opencv
-########
+#
+###
 git clone --branch 4.6.0 https://github.com/opencv/opencv
 cd opencv
 mkdir _build && cd _build
@@ -14,13 +14,38 @@ cmake .. ^
  -D BUILD_PERF_TESTS=OFF ^
  -D WITH_IPP=OFF ^
  -D CMAKE_INSTALL_PREFIX=../../extern/opencv
-
 cmake --build . --config Release --target INSTALL
 
 #
-########
-git clone -b 3.3.8 https://github.com/glfw/glfw
+###
+git clone -b 1.9.6 https://github.com/open-source-parsers/jsoncpp
+cd jsoncpp
+mkdir _build && cd _build
+cmake .. ^
+ -G "Visual Studio 16 2019" ^
+ -D CMAKE_BUILD_TYPE=Release ^
+ -D BUILD_STATIC_LIBS=ON ^
+ -D BUILD_SHARED_LIBS=OFF ^
+ -D JSONCPP_WITH_TESTS=OFF ^
+ -D JSONCPP_STATIC_WINDOWS_RUNTIME=OFF ^
+ -D CMAKE_INSTALL_PREFIX=../../extern/jsoncpp
+cmake --build . --config Release --target INSTALL
 
 #
-########
-git clone -b 1.9.5 https://github.com/open-source-parsers/jsoncpp
+###
+git clone -b curl-8_16_0  https://github.com/curl/curl
+cd curl
+mkdir _build && cd _build
+cmake .. ^
+ -G "Visual Studio 16 2019" ^
+ -D CMAKE_BUILD_TYPE=Release ^
+ -D BUILD_STATIC_LIBS=ON ^
+ -D BUILD_SHARED_LIBS=OFF ^
+ -D CURL_STATIC_CRT=ON ^
+ -D CURL_USE_SCHANNEL=ON ^
+ -D CURL_USE_LIBPSL=OFF ^
+ -D BUILD_CURL_EXE=OFF ^
+ -D BUILD_TESTING=OFF ^
+ -D BUILD_MANUAL=OFF ^
+ -D CMAKE_INSTALL_PREFIX=../../extern/curl
+cmake --build . --config Release --target INSTALL
