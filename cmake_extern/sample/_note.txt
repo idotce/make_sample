@@ -1,0 +1,3 @@
+mkdir _build && cd _build
+cmake .. -G "Visual Studio 16 2019" -D CMAKE_BUILD_TYPE=Release
+cmake --build . --config Release

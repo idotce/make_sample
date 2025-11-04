@@ -1,13 +1,21 @@
 cmake -G
-cmake . -B _out
-cmake --build _out
 
 # win
 mkdir _win && cd _win
-cmake .. -A x64 -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX=_win -DUSE_TEST=OFF
+cmake .. -A x64 -G "Visual Studio 16 2019" -D CMAKE_INSTALL_PREFIX=_win -D USE_TEST=OFF
 cmake --build . --config Release
+cmake --build . --config Release --target INSTALL
 
 # msys2
 mkdir _msys; cd _msys
-cmake .. -G "MSYS Makefiles" -DCMAKE_INSTALL_PREFIX=_msys -DUSE_TEST=OFF
+cmake .. -G "MSYS Makefiles" -D CMAKE_INSTALL_PREFIX=_msys -D USE_TEST=OFF
 make
+make install
+make install DESTDIR=
+
+# mingw
+mkdir _msys && cd _msys
+cmake .. -G "MinGW Makefiles" -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=../../opencv-msys -D USE_TEST=OFF
+mingw32-make -j8
+mingw32-make install
+mingw32-make install DESTDIR=${pwd_dir}/${out_dir}/

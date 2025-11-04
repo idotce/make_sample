@@ -1,0 +1,26 @@
+# opencv
+########
+git clone --branch 4.6.0 https://github.com/opencv/opencv
+cd opencv
+mkdir _build && cd _build
+cmake .. ^
+ -G "Visual Studio 16 2019" ^
+ -D CMAKE_BUILD_TYPE=Release ^
+ -D BUILD_SHARED_LIBS=OFF ^
+ -D BUILD_opencv_world=ON ^
+ -D OPENCV_FORCE_3RDPARTY_BUILD=ON ^
+ -D BUILD_EXAMPLES=OFF ^
+ -D BUILD_TESTS=OFF ^
+ -D BUILD_PERF_TESTS=OFF ^
+ -D WITH_IPP=OFF ^
+ -D CMAKE_INSTALL_PREFIX=../../extern/opencv
+
+cmake --build . --config Release --target INSTALL
+
+#
+########
+git clone -b 3.3.8 https://github.com/glfw/glfw
+
+#
+########
+git clone -b 1.9.5 https://github.com/open-source-parsers/jsoncpp
