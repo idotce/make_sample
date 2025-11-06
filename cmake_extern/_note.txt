@@ -1,60 +1,33 @@
 注意事项
+allinone是之前编译方式，把几个库和sample一起编译，但是现在不用这种方式了注意事项
+
+Windows
 因为项目需要用到这几个，所以都需要统一MT运行时 -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
-allinone是之前编译方式，把几个库和sample一起编译，但是现在不用这种方式了
+Android
+curl还编译不过，需要openssl
+set CMAKE_DIR="d:\Documents\Android\Sdk\cmake\3.18.1\bin"
+set NDK_DIR="d:\Documents\Android\Sdk\ndk\21.0.6113669"
+set PATH=%CMAKE_DIR%;%PATH%
 
 #
 ###
+cd _download
+git clone -b v2.17.0 https://github.com/tensorflow/tensorflow
+copy patch\CMakeLists.txt _download\tensorflow\tensorflow\lite\CMakeLists.txt /y
+copy patch\operator.cc _download\tensorflow\tensorflow\lite\core\c\operator.cc /y
+copy patch\stablehlo_reduce_window.cc _download\tensorflow\tensorflow\lite\kernels\stablehlo_reduce_window.cc /y
+
+#
+###
+cd _download
 git clone --branch 4.6.0 https://github.com/opencv/opencv
-cd opencv
-mkdir _build && cd _build
-cmake .. ^
- -G "Visual Studio 16 2019" ^
- -D CMAKE_BUILD_TYPE=Release ^
- -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
- -D BUILD_SHARED_LIBS=OFF ^
- -D BUILD_opencv_world=ON ^
- -D OPENCV_FORCE_3RDPARTY_BUILD=ON ^
- -D BUILD_EXAMPLES=OFF ^
- -D BUILD_TESTS=OFF ^
- -D BUILD_PERF_TESTS=OFF ^
- -D WITH_IPP=ON ^
- -D OPENCV_IPP=ON ^
- -D ENABLE_IPPICV=ON ^
- -D CMAKE_INSTALL_PREFIX=../../extern/opencv
-cmake --build . --config Release --target INSTALL
 
 #
 ###
+cd _download
 git clone -b 1.9.6 https://github.com/open-source-parsers/jsoncpp
-cd jsoncpp
-mkdir _build && cd _build
-cmake .. ^
- -G "Visual Studio 16 2019" ^
- -D CMAKE_BUILD_TYPE=Release ^
- -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
- -D BUILD_STATIC_LIBS=ON ^
- -D BUILD_SHARED_LIBS=OFF ^
- -D JSONCPP_WITH_TESTS=OFF ^
- -D JSONCPP_STATIC_WINDOWS_RUNTIME=ON ^
- -D CMAKE_INSTALL_PREFIX=../../extern/jsoncpp
-cmake --build . --config Release --target INSTALL
 
 #
 ###
+cd _download
 git clone -b curl-8_16_0  https://github.com/curl/curl
-cd curl
-mkdir _build && cd _build
-cmake .. ^
- -G "Visual Studio 16 2019" ^
- -D CMAKE_BUILD_TYPE=Release ^
- -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
- -D BUILD_STATIC_LIBS=ON ^
- -D BUILD_SHARED_LIBS=OFF ^
- -D CURL_STATIC_CRT=ON ^
- -D CURL_USE_SCHANNEL=ON ^
- -D CURL_USE_LIBPSL=OFF ^
- -D BUILD_CURL_EXE=OFF ^
- -D BUILD_TESTING=OFF ^
- -D BUILD_MANUAL=OFF ^
- -D CMAKE_INSTALL_PREFIX=../../extern/curl
-cmake --build . --config Release --target INSTALL
