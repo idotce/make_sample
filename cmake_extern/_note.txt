@@ -13,20 +13,10 @@ set PATH=%CMAKE_DIR%;%PATH%
 ###
 cd _download
 git clone -b v2.17.0 https://github.com/tensorflow/tensorflow
-copy patch\CMakeLists.txt _download\tensorflow\tensorflow\lite\CMakeLists.txt /y
-copy patch\operator.cc _download\tensorflow\tensorflow\lite\core\c\operator.cc /y
-copy patch\stablehlo_reduce_window.cc _download\tensorflow\tensorflow\lite\kernels\stablehlo_reduce_window.cc /y
-
-
- -D TFLITE_BUILD_STATIC_LIB=ON ^
- -D TFLITE_ENABLE_INSTALL=ON ^
- -D TFLITE_KERNEL_TEST=OFF ^
- -D TFLITE_BUILD_EXECUTABLES=OFF ^
- -D CMAKE_CXX_STANDARD=20 ^
- -D CMAKE_CXX_STANDARD_REQUIRED=ON ^
- -D CMAKE_CXX_EXTENSIONS=OFF ^
- -D CMAKE_CXX_FLAGS="/std:c++latest" ^
- -D CMAKE_C_FLAGS="/std:c11" ^
+copy patch\lite\CMakeLists.txt _download\tensorflow\tensorflow\lite\CMakeLists.txt /y
+copy patch\lite\operator.cc _download\tensorflow\tensorflow\lite\core\c\operator.cc /y
+copy patch\lite\stablehlo_reduce_window.cc _download\tensorflow\tensorflow\lite\kernels\stablehlo_reduce_window.cc /y
+copy patch\lite\c\CMakeLists.txt _download\tensorflow\tensorflow\lite\c\CMakeLists.txt /y
 
 #
 ###

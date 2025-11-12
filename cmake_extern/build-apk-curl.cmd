@@ -6,15 +6,18 @@ set PROJ_DIR=%PWD%/_download/curl
 set BUILD_DIR=%PWD%/_build
 set PROJ_OUT=%PWD%/extern_apk/curl
 
-set CMAKE_BIN="cmake.exe"
-set CMAKE_GEN="Ninja"
-set CMAKE_DIR="d:\Documents\Android\Sdk\cmake\3.18.1\bin"
-set NDK_DIR="d:\Documents\Android\Sdk\ndk\21.0.6113669"
-set PATH=%CMAKE_DIR%;%PATH%
+set CMAKE_BIN=cmake.exe
+set CMAKE_GEN=Ninja
+set "CMAKE_DIR=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
+set "NDK_DIR=d:\Documents\Android\Sdk\ndk\21.0.6113669"
+set "PATH=%CMAKE_DIR%;%PATH%"
+
+:: 确保输出目录存在
+if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
 
 set OPENSSL_DIR=%PWD%/patch/openssl_arm64
 set CMAKE_OPT= ^
- -D CMAKE_TOOLCHAIN_FILE=%NDK_DIR%/build/cmake/android.toolchain.cmake ^
+ -D CMAKE_TOOLCHAIN_FILE=%NDK_DIR%\build\cmake\android.toolchain.cmake ^
  -D CMAKE_MAKE_PROGRAM=ninja ^
  -D ANDROID_ABI=arm64-v8a ^
  -D ANDROID_PLATFORM=android-21 ^
@@ -26,12 +29,10 @@ set CMAKE_OPT= ^
  -D OPENSSL_INCLUDE_DIR=%OPENSSL_DIR%/include ^
  -D OPENSSL_CRYPTO_LIBRARY=%OPENSSL_DIR%/lib/libcrypto.a ^
  -D OPENSSL_SSL_LIBRARY=%OPENSSL_DIR%/lib/libssl.a ^
- -D CURL_STATIC_CRT=ON ^
  -D CURL_USE_OPENSSL=ON ^
  -D CURL_USE_LIBPSL=OFF ^
  -D BUILD_CURL_EXE=OFF ^
  -D BUILD_TESTING=OFF ^
- -D BUILD_MANUAL=OFF ^
  -D CMAKE_INSTALL_PREFIX=%PROJ_OUT%
 
 :MAIN
@@ -44,17 +45,17 @@ echo.
 
 :MENU
 set /p mainmenu=请选择功能:
-if '%mainmenu%'=='1' (goto MAIN_CMAKE)
-if '%mainmenu%'=='2' (goto MAIN_BUILD)
-if '%mainmenu%'=='3' (goto MAIN_CLEAN)
-if '%mainmenu%'=='x' exit /b
+if "%mainmenu%"=="1" (goto MAIN_CMAKE)
+if "%mainmenu%"=="2" (goto MAIN_BUILD)
+if "%mainmenu%"=="3" (goto MAIN_CLEAN)
+if "%mainmenu%"=="x" exit /b
 echo.
 echo.请选择一个有效的功能,按任意键返回!
 pause
 goto MAIN
 
 :MAIN_CMAKE
-if not exist %BUILD_DIR% (
+if not exist "%BUILD_DIR%" (
     mkdir "%BUILD_DIR%"
 )
 cd "%BUILD_DIR%"
@@ -63,11 +64,13 @@ goto PAUSE_MENU
 
 :MAIN_BUILD
 cd "%BUILD_DIR%"
-%CMAKE_BIN% --build . --config Release --target install
+%CMAKE_BIN% --build . --config Release --target install -j16
 goto PAUSE_MENU
 
 :MAIN_CLEAN
-rd /q /s "%BUILD_DIR%"
+if exist "%BUILD_DIR%" (
+    rd /q /s "%BUILD_DIR%"
+)
 goto PAUSE_MENU
 
 :PAUSE_MENU

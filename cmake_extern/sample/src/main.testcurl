@@ -1,0 +1,632 @@
+#include <curl/curl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <process.h>
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+#define MAX_URL_LENGTH 1024
+#define MAX_HEADER_LENGTH 256
+#define MAX_HEADERS 10
+#define MAX_ERROR_MSG_LENGTH 256
+#define CURL_ERROR_SIZE 256
+
+typedef struct http_request http_request_t;
+typedef struct http_response http_response_t;
+typedef struct async_http_client async_http_client_t;
+
+// HTTP 响应回调函数类型
+typedef void (*http_callback_t)(int request_id, int success, int status_code,
+                               const char* response, size_t response_len,
+                               const char* error_msg, void* user_data);
+
+// HTTP 请求配置
+typedef struct {
+    char url[MAX_URL_LENGTH];
+    long timeout_ms;
+    int max_retries;
+    long connect_timeout_ms;
+    int verify_ssl;
+    char headers[MAX_HEADERS][MAX_HEADER_LENGTH];
+    int headers_count;
+    char post_data[4096];
+    int is_post;
+} http_request_config_t;
+
+// HTTP 响应结构
+struct http_response {
+    char* data;
+    size_t size;
+    int request_id;
+};
+
+// HTTP 请求结构
+struct http_request {
+    int id;
+    CURL* easy_handle;
+    http_request_config_t config;
+    http_callback_t callback;
+    void* user_data;
+    int retry_count;
+    time_t start_time;
+    char error_buffer[CURL_ERROR_SIZE];
+    http_response_t response;
+    int completed;
+};
+
+// 异步 HTTP 客户端
+struct async_http_client {
+    CURLM* multi_handle;
+
+#ifdef _WIN32
+    HANDLE worker_thread;
+    CRITICAL_SECTION queue_mutex;
+    CONDITION_VARIABLE queue_cond;
+#else
+    pthread_t worker_thread;
+    pthread_mutex_t queue_mutex;
+    pthread_cond_t queue_cond;
+#endif
+
+    int running;
+
+    http_request_t** request_queue;
+    int queue_size;
+    int queue_capacity;
+
+    http_request_t** active_requests;
+    int active_count;
+    int active_capacity;
+
+    int next_request_id;
+
+    // 统计信息
+    int total_requests;
+    int failed_requests;
+    int retry_count;
+};
+
+// 写入回调函数
+static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata) {
+    http_response_t* response = (http_response_t*)userdata;
+    size_t total_size = size * nmemb;
+
+    char* new_data = realloc(response->data, response->size + total_size + 1);
+    if (!new_data) {
+        return 0;
+    }
+
+    response->data = new_data;
+    memcpy(response->data + response->size, ptr, total_size);
+    response->size += total_size;
+    response->data[response->size] = '\0';
+
+    return total_size;
+}
+
+// 进度回调函数（用于超时检测）
+static int progress_callback(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow) {
+    http_request_t* request = (http_request_t*)clientp;
+    time_t current_time = time(NULL);
+    double elapsed = difftime(current_time, request->start_time);
+
+    // 检查是否超时（转换为秒）
+    if (elapsed > (request->config.timeout_ms / 1000.0)) {
+        return 1; // 返回非0表示中止
+    }
+
+    return 0;
+}
+
+// 创建 HTTP 请求
+static http_request_t* create_http_request(async_http_client_t* client,
+                                          const http_request_config_t* config,
+                                          http_callback_t callback,
+                                          void* user_data) {
+    http_request_t* request = malloc(sizeof(http_request_t));
+    if (!request) return NULL;
+
+    memset(request, 0, sizeof(http_request_t));
+    request->id = client->next_request_id++;
+    request->config = *config;
+    request->callback = callback;
+    request->user_data = user_data;
+    request->start_time = time(NULL);
+    request->response.request_id = request->id;
+
+    return request;
+}
+
+// 创建 CURL easy handle
+static CURL* create_easy_handle(http_request_t* request) {
+    CURL* easy = curl_easy_init();
+    if (!easy) return NULL;
+
+    // 基本设置
+    curl_easy_setopt(easy, CURLOPT_URL, request->config.url);
+    curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(easy, CURLOPT_WRITEDATA, &request->response);
+    curl_easy_setopt(easy, CURLOPT_ERRORBUFFER, request->error_buffer);
+    curl_easy_setopt(easy, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(easy, CURLOPT_XFERINFOFUNCTION, progress_callback);
+    curl_easy_setopt(easy, CURLOPT_XFERINFODATA, request);
+
+    // 超时设置
+    curl_easy_setopt(easy, CURLOPT_TIMEOUT_MS, request->config.timeout_ms);
+    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT_MS, request->config.connect_timeout_ms);
+
+    // SSL 设置
+    if (!request->config.verify_ssl) {
+        curl_easy_setopt(easy, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(easy, CURLOPT_SSL_VERIFYHOST, 0L);
+    }
+
+    // POST 请求设置
+    if (request->config.is_post) {
+        curl_easy_setopt(easy, CURLOPT_POST, 1L);
+        curl_easy_setopt(easy, CURLOPT_POSTFIELDS, request->config.post_data);
+        curl_easy_setopt(easy, CURLOPT_POSTFIELDSIZE, strlen(request->config.post_data));
+    }
+
+    // 设置自定义头部
+    if (request->config.headers_count > 0) {
+        struct curl_slist* headers = NULL;
+        for (int i = 0; i < request->config.headers_count; i++) {
+            headers = curl_slist_append(headers, request->config.headers[i]);
+        }
+        curl_easy_setopt(easy, CURLOPT_HTTPHEADER, headers);
+    }
+
+    // 其他优化设置
+    curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(easy, CURLOPT_MAXREDIRS, 5L);
+    curl_easy_setopt(easy, CURLOPT_TCP_KEEPALIVE, 1L);
+
+    return easy;
+}
+
+// 判断是否需要重试
+static int should_retry(CURLcode result, int http_status) {
+    // 网络错误或超时应该重试
+    if (result == CURLE_OPERATION_TIMEDOUT ||
+        result == CURLE_COULDNT_CONNECT ||
+        result == CURLE_COULDNT_RESOLVE_HOST ||
+        result == CURLE_SEND_ERROR ||
+        result == CURLE_RECV_ERROR) {
+        return 1;
+    }
+
+    // 5xx 服务器错误应该重试
+    if (http_status >= 500 && http_status < 600) {
+        return 1;
+    }
+
+    return 0;
+}
+
+// 获取错误信息
+static void get_error_message(CURLcode result, const char* error_buffer, int http_status, char* output, size_t output_size) {
+    if (result != CURLE_OK) {
+        if (error_buffer && error_buffer[0] != '\0') {
+            snprintf(output, output_size, "%s", error_buffer);
+        } else {
+            snprintf(output, output_size, "%s", curl_easy_strerror(result));
+        }
+    } else if (http_status >= 400) {
+        snprintf(output, output_size, "HTTP error: %d", http_status);
+    } else {
+        snprintf(output, output_size, "Unknown error");
+    }
+}
+
+// 处理完成的请求
+static void process_completed_requests(async_http_client_t* client) {
+    int msgs_in_queue;
+    CURLMsg* msg;
+
+    while ((msg = curl_multi_info_read(client->multi_handle, &msgs_in_queue))) {
+        if (msg->msg == CURLMSG_DONE) {
+            CURL* easy = msg->easy_handle;
+            http_request_t* request = NULL;
+
+            // 查找对应的请求
+            for (int i = 0; i < client->active_count; i++) {
+                if (client->active_requests[i]->easy_handle == easy) {
+                    request = client->active_requests[i];
+                    // 从活跃请求中移除
+                    memmove(&client->active_requests[i], &client->active_requests[i + 1],
+                           (client->active_count - i - 1) * sizeof(http_request_t*));
+                    client->active_count--;
+                    break;
+                }
+            }
+
+            if (!request) {
+                curl_easy_cleanup(easy);
+                continue;
+            }
+
+            // 获取响应信息
+            long http_status = 0;
+            CURLcode result = msg->data.result;
+
+            if (result == CURLE_OK) {
+                curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &http_status);
+            }
+
+            // 检查是否需要重试
+            int need_retry = 0;
+            if ((result != CURLE_OK || (http_status >= 400 && http_status != 404)) &&
+                should_retry(result, http_status) &&
+                request->retry_count < request->config.max_retries) {
+
+                request->retry_count++;
+                client->retry_count++;
+
+                curl_multi_remove_handle(client->multi_handle, easy);
+                curl_easy_cleanup(easy);
+
+                printf("Retrying request (%d/%d): %s\n",
+                       request->retry_count, request->config.max_retries,
+                       request->config.url);
+
+                // 重新加入队列
+#ifdef _WIN32
+                EnterCriticalSection(&client->queue_mutex);
+#else
+                pthread_mutex_lock(&client->queue_mutex);
+#endif
+
+                if (client->queue_size >= client->queue_capacity) {
+                    client->queue_capacity *= 2;
+                    client->request_queue = realloc(client->request_queue,
+                                                   client->queue_capacity * sizeof(http_request_t*));
+                }
+                client->request_queue[client->queue_size++] = request;
+
+#ifdef _WIN32
+                LeaveCriticalSection(&client->queue_mutex);
+                WakeConditionVariable(&client->queue_cond);
+#else
+                pthread_mutex_unlock(&client->queue_mutex);
+                pthread_cond_signal(&client->queue_cond);
+#endif
+
+                continue;
+            }
+
+            if (result != CURLE_OK || http_status >= 400) {
+                client->failed_requests++;
+            }
+
+            // 准备回调数据
+            int success = (result == CURLE_OK) && (http_status >= 200 && http_status < 300);
+            char error_msg[MAX_ERROR_MSG_LENGTH];
+            get_error_message(result, request->error_buffer, http_status, error_msg, sizeof(error_msg));
+
+            // 执行回调
+            if (request->callback) {
+                request->callback(request->id, success, http_status,
+                                request->response.data ? request->response.data : "",
+                                request->response.size,
+                                error_msg, request->user_data);
+            }
+
+            // 清理
+            curl_multi_remove_handle(client->multi_handle, easy);
+            curl_easy_cleanup(easy);
+            if (request->response.data) {
+                free(request->response.data);
+            }
+            free(request);
+        }
+    }
+}
+
+#ifdef _WIN32
+// Windows 工作线程函数
+static DWORD WINAPI worker_thread(LPVOID arg) {
+#else
+// POSIX 工作线程函数
+static void* worker_thread(void* arg) {
+#endif
+    async_http_client_t* client = (async_http_client_t*)arg;
+
+    while (client->running) {
+        // 处理新请求
+        http_request_t** new_requests = NULL;
+        int new_count = 0;
+
+#ifdef _WIN32
+        EnterCriticalSection(&client->queue_mutex);
+        if (client->queue_size == 0) {
+            SleepConditionVariableCS(&client->queue_cond, &client->queue_mutex, 100);
+        }
+#else
+        pthread_mutex_lock(&client->queue_mutex);
+        if (client->queue_size == 0) {
+            struct timespec ts;
+            clock_gettime(CLOCK_REALTIME, &ts);
+            ts.tv_nsec += 100000000; // 100ms
+            pthread_cond_timedwait(&client->queue_cond, &client->queue_mutex, &ts);
+        }
+#endif
+
+        if (client->queue_size > 0) {
+            new_count = client->queue_size;
+            new_requests = malloc(new_count * sizeof(http_request_t*));
+            memcpy(new_requests, client->request_queue, new_count * sizeof(http_request_t*));
+            client->queue_size = 0;
+        }
+
+#ifdef _WIN32
+        LeaveCriticalSection(&client->queue_mutex);
+#else
+        pthread_mutex_unlock(&client->queue_mutex);
+#endif
+
+        // 添加新请求到 multi handle
+        for (int i = 0; i < new_count; i++) {
+            http_request_t* request = new_requests[i];
+            CURL* easy = create_easy_handle(request);
+
+            if (easy) {
+                curl_multi_add_handle(client->multi_handle, easy);
+                request->easy_handle = easy;
+
+                // 添加到活跃请求
+                if (client->active_count >= client->active_capacity) {
+                    client->active_capacity *= 2;
+                    client->active_requests = realloc(client->active_requests,
+                                                     client->active_capacity * sizeof(http_request_t*));
+                }
+                client->active_requests[client->active_count++] = request;
+            } else {
+                // 创建失败，直接回调错误
+                if (request->callback) {
+                    request->callback(request->id, 0, 0, "", 0,
+                                    "Failed to create easy handle", request->user_data);
+                }
+                client->failed_requests++;
+                if (request->response.data) {
+                    free(request->response.data);
+                }
+                free(request);
+            }
+        }
+
+        if (new_requests) {
+            free(new_requests);
+        }
+
+        // 执行 multi 请求
+        int still_running = 0;
+        curl_multi_perform(client->multi_handle, &still_running);
+
+        // 处理完成的请求
+        process_completed_requests(client);
+
+        // 等待活动
+        int numfds;
+        curl_multi_wait(client->multi_handle, NULL, 0, 100, &numfds);
+    }
+
+#ifdef _WIN32
+    return 0;
+#else
+    return NULL;
+#endif
+}
+
+// 创建异步 HTTP 客户端
+async_http_client_t* async_http_client_create() {
+    async_http_client_t* client = malloc(sizeof(async_http_client_t));
+    if (!client) return NULL;
+
+    memset(client, 0, sizeof(async_http_client_t));
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    client->multi_handle = curl_multi_init();
+
+#ifdef _WIN32
+    InitializeCriticalSection(&client->queue_mutex);
+    InitializeConditionVariable(&client->queue_cond);
+#else
+    pthread_mutex_init(&client->queue_mutex, NULL);
+    pthread_cond_init(&client->queue_cond, NULL);
+#endif
+
+    // 初始化队列
+    client->queue_capacity = 16;
+    client->request_queue = malloc(client->queue_capacity * sizeof(http_request_t*));
+
+    client->active_capacity = 16;
+    client->active_requests = malloc(client->active_capacity * sizeof(http_request_t*));
+
+    client->running = 1;
+    client->next_request_id = 1;
+
+    // 启动工作线程
+#ifdef _WIN32
+    client->worker_thread = CreateThread(NULL, 0, worker_thread, client, 0, NULL);
+#else
+    pthread_create(&client->worker_thread, NULL, worker_thread, client);
+#endif
+
+    return client;
+}
+
+// 销毁异步 HTTP 客户端
+void async_http_client_destroy(async_http_client_t* client) {
+    if (!client) return;
+
+    client->running = 0;
+
+#ifdef _WIN32
+    WakeAllConditionVariable(&client->queue_cond);
+    WaitForSingleObject(client->worker_thread, INFINITE);
+    CloseHandle(client->worker_thread);
+    DeleteCriticalSection(&client->queue_mutex);
+#else
+    pthread_cond_broadcast(&client->queue_cond);
+    pthread_join(client->worker_thread, NULL);
+    pthread_mutex_destroy(&client->queue_mutex);
+    pthread_cond_destroy(&client->queue_cond);
+#endif
+
+    // 清理所有活跃请求
+    for (int i = 0; i < client->active_count; i++) {
+        http_request_t* request = client->active_requests[i];
+        curl_multi_remove_handle(client->multi_handle, request->easy_handle);
+        curl_easy_cleanup(request->easy_handle);
+        if (request->response.data) {
+            free(request->response.data);
+        }
+        free(request);
+    }
+
+    // 清理队列中的请求
+    for (int i = 0; i < client->queue_size; i++) {
+        http_request_t* request = client->request_queue[i];
+        if (request->response.data) {
+            free(request->response.data);
+        }
+        free(request);
+    }
+
+    curl_multi_cleanup(client->multi_handle);
+    curl_global_cleanup();
+
+    free(client->request_queue);
+    free(client->active_requests);
+    free(client);
+}
+
+// 添加 GET 请求
+int async_http_client_get(async_http_client_t* client,
+                         const http_request_config_t* config,
+                         http_callback_t callback,
+                         void* user_data) {
+    if (!client || !config) return -1;
+
+    http_request_t* request = create_http_request(client, config, callback, user_data);
+    if (!request) return -1;
+
+#ifdef _WIN32
+    EnterCriticalSection(&client->queue_mutex);
+#else
+    pthread_mutex_lock(&client->queue_mutex);
+#endif
+
+    if (client->queue_size >= client->queue_capacity) {
+        client->queue_capacity *= 2;
+        client->request_queue = realloc(client->request_queue,
+                                       client->queue_capacity * sizeof(http_request_t*));
+    }
+    client->request_queue[client->queue_size++] = request;
+    client->total_requests++;
+
+#ifdef _WIN32
+    LeaveCriticalSection(&client->queue_mutex);
+    WakeConditionVariable(&client->queue_cond);
+#else
+    pthread_mutex_unlock(&client->queue_mutex);
+    pthread_cond_signal(&client->queue_cond);
+#endif
+
+    return request->id;
+}
+
+// 添加 POST 请求
+int async_http_client_post(async_http_client_t* client,
+                          const http_request_config_t* config,
+                          const char* post_data,
+                          http_callback_t callback,
+                          void* user_data) {
+    if (!client || !config) return -1;
+
+    http_request_config_t post_config = *config;
+    post_config.is_post = 1;
+    strncpy(post_config.post_data, post_data, sizeof(post_config.post_data) - 1);
+
+    return async_http_client_get(client, &post_config, callback, user_data);
+}
+
+// 获取统计信息
+void async_http_client_get_stats(async_http_client_t* client,
+                                int* total, int* failed, int* retries) {
+    if (client) {
+        *total = client->total_requests;
+        *failed = client->failed_requests;
+        *retries = client->retry_count;
+    }
+}
+
+// 使用示例回调函数
+void example_callback(int request_id, int success, int status_code,
+                     const char* response, size_t response_len,
+                     const char* error_msg, void* user_data) {
+    if (success) {
+        printf("Request %d succeeded! Status: %d\n", request_id, status_code);
+        printf("Response length: %zu bytes\n", response_len);
+        if (response_len > 0) {
+            printf("First 200 chars: %.200s\n", response);
+        }
+    } else {
+        printf("Request %d failed: %s (Status: %d)\n", request_id, error_msg, status_code);
+    }
+}
+
+// 使用示例
+int main() {
+    async_http_client_t* client = async_http_client_create();
+
+    http_request_config_t config = {
+        .url = "https://httpbin.org/get",
+        .timeout_ms = 8000,
+        .max_retries = 2,
+        .connect_timeout_ms = 5000,
+        .verify_ssl = 1,
+        .headers_count = 1,
+        .is_post = 0
+    };
+    strcpy(config.headers[0], "User-Agent: AsyncHttpClient/1.0");
+
+    // 发送多个 GET 请求
+    for (int i = 0; i < 5; i++) {
+        async_http_client_get(client, &config, example_callback, NULL);
+    }
+
+    // 发送 POST 请求
+    http_request_config_t post_config = {
+        .url = "https://httpbin.org/post",
+        .timeout_ms = 8000,
+        .max_retries = 2,
+        .connect_timeout_ms = 5000,
+        .verify_ssl = 1,
+        .is_post = 1
+    };
+    async_http_client_post(client, &post_config, "{\"test\": \"data\"}", example_callback, NULL);
+
+    // 等待所有请求完成
+#ifdef _WIN32
+    Sleep(10000);
+#else
+    sleep(10);
+#endif
+
+    // 打印统计信息
+    int total, failed, retries;
+    async_http_client_get_stats(client, &total, &failed, &retries);
+    printf("\nStatistics - Total: %d, Failed: %d, Retries: %d\n", total, failed, retries);
+
+    async_http_client_destroy(client);
+    return 0;
+}

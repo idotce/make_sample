@@ -4,24 +4,26 @@ chcp 65001 >nul
 set PWD=%~dp0
 set PROJ_DIR=%PWD%/_download/tensorflow/tensorflow/lite/c
 set BUILD_DIR=%PWD%/_build
-set PROJ_OUT=%PWD%/extern/tensorflow
+set PROJ_OUT=%PWD%/extern_apk/tensorflow
 
 set CMAKE_BIN=cmake.exe
-set CMAKE_GEN="Visual Studio 16 2019"
-set "CMAKE_DIR=c:\cmake\bin"
+set CMAKE_GEN=Ninja
+set "CMAKE_DIR=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
+set "NDK_DIR=d:\Documents\Android\Sdk\ndk\21.0.6113669"
 set "PATH=%CMAKE_DIR%;%PATH%"
 
 :: 确保输出目录存在
 if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
 
 set CMAKE_OPT= ^
- -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+ -D CMAKE_TOOLCHAIN_FILE=%NDK_DIR%\build\cmake\android.toolchain.cmake ^
+ -D CMAKE_MAKE_PROGRAM=ninja ^
+ -D ANDROID_ABI=arm64-v8a ^
+ -D ANDROID_PLATFORM=android-21 ^
  -D CMAKE_BUILD_TYPE=Release ^
  -D TFLITE_ENABLE_GPU=ON ^
  -D BUILD_SHARED_LIBS=OFF ^
  -D TFLITE_C_BUILD_SHARED_LIBS=OFF ^
- -D TFLITE_ENABLE_XNNPACK=OFF ^
- -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=OFF ^
  -D CMAKE_ARCHIVE_OUTPUT_DIRECTORY=%PROJ_OUT%/lib ^
  -D CMAKE_LIBRARY_OUTPUT_DIRECTORY=%PROJ_OUT%/lib ^
  -D CMAKE_RUNTIME_OUTPUT_DIRECTORY=%PROJ_OUT%/bin ^
