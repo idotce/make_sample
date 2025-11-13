@@ -63,6 +63,7 @@ cd "%BUILD_DIR%"
 echo 安装文件...
 if not exist "%PROJ_OUT%/include/tensorflow" mkdir "%PROJ_OUT%/include/tensorflow"
 robocopy "%PROJ_DIR%/../.." "%PROJ_OUT%/include/tensorflow" *.h /S /E /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/flatbuffers/include" "%PROJ_OUT%/include" *.h /S /E /NFL /NDL /NJH /NJS >nul
 goto PAUSE_MENU
 
 :MAIN_CLEAN
