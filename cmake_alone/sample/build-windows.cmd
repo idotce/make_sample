@@ -1,30 +1,26 @@
 @echo off
 chcp 65001 >nul
 
+set http_proxy=192.168.1.5:8888
+set https_proxy=192.168.1.5:8888
+
 set PWD=%~dp0
-set PROJ_DIR=%PWD%/_download/jsoncpp
-set BUILD_DIR=%PWD%/_build
-set PROJ_OUT=%PWD%/extern_apk/jsoncpp
+set PROJ_DIR=%PWD%
+set BUILD_DIR=%PWD%\_build
+set PROJ_OUT=%PWD%\_install
 
 set CMAKE_BIN=cmake.exe
-set CMAKE_GEN=Ninja
-set "CMAKE_DIR=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
-set "NDK_DIR=d:\Documents\Android\Sdk\ndk\21.0.6113669"
+set CMAKE_GEN="Visual Studio 16 2019"
+set "CMAKE_DIR=c:\cmake\bin"
 set "PATH=%CMAKE_DIR%;%PATH%"
 
 :: 确保输出目录存在
 if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
 
 set CMAKE_OPT= ^
- -D CMAKE_TOOLCHAIN_FILE=%NDK_DIR%\build\cmake\android.toolchain.cmake ^
- -D CMAKE_MAKE_PROGRAM=ninja ^
- -D ANDROID_ABI=arm64-v8a ^
- -D ANDROID_PLATFORM=android-21 ^
- -D CMAKE_BUILD_TYPE=Release ^
- -D BUILD_STATIC_LIBS=ON ^
- -D BUILD_SHARED_LIBS=OFF ^
- -D JSONCPP_WITH_TESTS=OFF ^
- -D CMAKE_INSTALL_PREFIX=%PROJ_OUT%
+    -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
 
 :MAIN
 cls
@@ -55,7 +51,8 @@ goto PAUSE_MENU
 
 :MAIN_BUILD
 cd "%BUILD_DIR%"
-%CMAKE_BIN% --build . --config Release --target install -j16
+%CMAKE_BIN% --build . --config Release -j20
+%CMAKE_BIN% --install . --config Release
 goto PAUSE_MENU
 
 :MAIN_CLEAN

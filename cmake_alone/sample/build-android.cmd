@@ -1,10 +1,13 @@
 @echo off
 chcp 65001 >nul
 
+set http_proxy=192.168.1.5:8888
+set https_proxy=192.168.1.5:8888
+
 set PWD=%~dp0
-set PROJ_DIR=%PWD%/_download/curl
-set BUILD_DIR=%PWD%/_build
-set PROJ_OUT=%PWD%/extern_apk/curl
+set PROJ_DIR=%PWD%
+set BUILD_DIR=%PWD%\_build
+set PROJ_OUT=%PWD%\_install
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN=Ninja
@@ -15,25 +18,13 @@ set "PATH=%CMAKE_DIR%;%PATH%"
 :: 确保输出目录存在
 if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
 
-set OPENSSL_DIR=%PWD%/patch/openssl_arm64
 set CMAKE_OPT= ^
- -D CMAKE_TOOLCHAIN_FILE=%NDK_DIR%\build\cmake\android.toolchain.cmake ^
- -D CMAKE_MAKE_PROGRAM=ninja ^
- -D ANDROID_ABI=arm64-v8a ^
- -D ANDROID_PLATFORM=android-21 ^
- -D CMAKE_BUILD_TYPE=Release ^
- -D BUILD_STATIC_LIBS=ON ^
- -D CURL_USE_SCHANNEL=OFF ^
- -D CURL_USE_OPENSSL=ON ^
- -D OPENSSL_ROOT_DIR=%OPENSSL_DIR% ^
- -D OPENSSL_INCLUDE_DIR=%OPENSSL_DIR%/include ^
- -D OPENSSL_CRYPTO_LIBRARY=%OPENSSL_DIR%/lib/libcrypto.a ^
- -D OPENSSL_SSL_LIBRARY=%OPENSSL_DIR%/lib/libssl.a ^
- -D CURL_USE_OPENSSL=ON ^
- -D CURL_USE_LIBPSL=OFF ^
- -D BUILD_CURL_EXE=OFF ^
- -D BUILD_TESTING=OFF ^
- -D CMAKE_INSTALL_PREFIX=%PROJ_OUT%
+    -DCMAKE_TOOLCHAIN_FILE=%NDK_DIR%\build\cmake\android.toolchain.cmake ^
+    -DCMAKE_MAKE_PROGRAM=ninja ^
+    -DANDROID_ABI=arm64-v8a ^
+    -DANDROID_PLATFORM=android-21 ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
 
 :MAIN
 cls
@@ -64,7 +55,8 @@ goto PAUSE_MENU
 
 :MAIN_BUILD
 cd "%BUILD_DIR%"
-%CMAKE_BIN% --build . --config Release --target install -j16
+%CMAKE_BIN% --build . --config Release -j20
+%CMAKE_BIN% --install . --config Release
 goto PAUSE_MENU
 
 :MAIN_CLEAN

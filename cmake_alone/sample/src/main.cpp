@@ -3,25 +3,25 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 // 测试宏定义
-#define TEST_OPENCV 1
 #define TEST_CURL 1
 #define TEST_JSON 1
+#define TEST_OPENCV 1
 #define TEST_TENSORFLOW_LITE 1
-
-#if TEST_OPENCV
-#include <opencv2/opencv.hpp>
-#endif
 
 #if TEST_CURL
 #include <curl/curl.h>
 #endif
-
 #if TEST_JSON
 #include <json/json.h>
 #endif
-
+#if TEST_OPENCV
+#include <opencv2/opencv.hpp>
+#endif
 #if TEST_TENSORFLOW_LITE
 // 只使用核心TensorFlow Lite头文件，避免操作符API
 #include "tensorflow/lite/interpreter.h"
@@ -31,8 +31,6 @@
 // 移除操作符相关的头文件
 // #include "tensorflow/lite/c/c_api.h"
 // #include "tensorflow/lite/c/common.h"
-#endif
-
 // 创建一个简单的有效模型数据
 const unsigned char simple_model_data[] = {
   0x1c, 0x00, 0x00, 0x00, 0x54, 0x46, 0x4c, 0x33, 0x00, 0x00, 0x12, 0x00,
@@ -52,6 +50,7 @@ const unsigned char simple_model_data[] = {
   0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03
 };
 const unsigned int simple_model_data_len = sizeof(simple_model_data);
+#endif
 
 int main() {
 #ifdef _WIN32
@@ -62,17 +61,6 @@ int main() {
     std::cout << "=== 库功能测试 ===" << std::endl;
 
     bool all_success = true;
-
-#if TEST_OPENCV
-    std::cout << "\n1. 测试 OpenCV..." << std::endl;
-    try {
-        cv::Mat test_image(100, 100, CV_8UC3, cv::Scalar(0, 255, 0));
-        std::cout << "   OpenCV 工作正常 (图像尺寸: " << test_image.cols << "x" << test_image.rows << ")" << std::endl;
-    } catch (...) {
-        std::cout << "   OpenCV 测试失败" << std::endl;
-        all_success = false;
-    }
-#endif
 
 #if TEST_CURL
     std::cout << "\n2. 测试 libcurl..." << std::endl;
@@ -97,6 +85,17 @@ int main() {
         std::cout << "   jsoncpp 工作正常" << std::endl;
     } catch (...) {
         std::cout << "   jsoncpp 测试失败" << std::endl;
+        all_success = false;
+    }
+#endif
+
+#if TEST_OPENCV
+    std::cout << "\n1. 测试 OpenCV..." << std::endl;
+    try {
+        cv::Mat test_image(100, 100, CV_8UC3, cv::Scalar(0, 255, 0));
+        std::cout << "   OpenCV 工作正常 (图像尺寸: " << test_image.cols << "x" << test_image.rows << ")" << std::endl;
+    } catch (...) {
+        std::cout << "   OpenCV 测试失败" << std::endl;
         all_success = false;
     }
 #endif

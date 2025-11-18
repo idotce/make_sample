@@ -1,29 +1,30 @@
 cmake_minimum_required(VERSION 3.10)
-project(test) # Change this line.
+project(Test)
 
-set(CMAKE_CXX_STANDARD 11)
+# ======================== å…¨å±€åŸºç¡€é…ç½® ========================
+# ä¸»é¡¹ç›®ä½¿ç”¨ C++17 æ ‡å‡†
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-
-# ÉèÖÃ°²×°Ç°×º
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/output" CACHE PATH "Install path prefix" FORCE)
+# MSVC é™æ€è¿è¡Œæ—¶é…ç½®
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
 endif()
 
-# Ìí¼Ó¿ÉÖ´ĞĞÎÄ¼ş
+# ======================== ä¸»ç¨‹åºé…ç½® ========================
 aux_source_directory(src SRC_LIST)
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 
-# utf8±àÂëÖ§³Ö
-if(MSVC)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
-    endif()
+# MSVC UTF-8 ç¼–ç æ”¯æŒ
+if(MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
 endif()
 
-# °²×°ÅäÖÃ
+# ======================== å®‰è£…é…ç½® ========================
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
     CONFIGURATIONS Release

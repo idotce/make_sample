@@ -1,0 +1,6 @@
+Windows
+因为项目需要用到这几个，所以都需要统一MT运行时 -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+目前运行到 TensorFlow Lite 模型加载成功 就挂了
+
+Android
+链接Opencv或Tflite时要先链接主库，再链接附加库
