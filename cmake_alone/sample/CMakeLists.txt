@@ -15,14 +15,14 @@ if(MSVC)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
 endif()
 
-# ======================== extern 配置 ========================
+# ======================== third_party 配置 ========================
 # 第三方库目录
-set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/../extern)
+set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/../third_party)
 
 # Curl
 include_directories(${THIRD_PARTY_DIR}/curl/include)
 link_directories(${THIRD_PARTY_DIR}/curl/lib)
-link_directories(${THIRD_PARTY_DIR}/../patch/openssl_arm64/lib)
+link_directories(${THIRD_PARTY_DIR}/patch/openssl_arm64/lib)
 if(WIN32)
     set(CURL_LIBS libcurl)
 elseif(ANDROID)

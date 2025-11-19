@@ -1,12 +1,7 @@
 # Prerequisites
 _build
+_download
 _install
-
-# Git files
-third_party/curl/
-third_party/jsoncpp/
-third_party/opencv/
-third_party/tensorflow/
 
 # Clion files
 .idea/

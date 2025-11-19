@@ -5,9 +5,9 @@ set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
 
 set PWD=%~dp0
-set PROJ_DIR=%PWD%\_download\jsoncpp
+set PROJ_DIR=%PWD%\_download\glew
 set BUILD_DIR=%PROJ_DIR%\_build
-set BUILD_OUT=%PWD%\jsoncpp
+set BUILD_OUT=%PWD%\glew
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN="Visual Studio 16 2019"
@@ -22,8 +22,6 @@ set CMAKE_OPT= ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DBUILD_STATIC_LIBS=ON ^
     -DBUILD_SHARED_LIBS=OFF ^
-    -DJSONCPP_WITH_TESTS=OFF ^
-    -DJSONCPP_STATIC_WINDOWS_RUNTIME=ON ^
     -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%BUILD_OUT%/lib ^
     -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%BUILD_OUT%/include ^
     -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%BUILD_OUT%/bin ^
@@ -77,7 +75,7 @@ goto MAIN
 
 :APPLY_DOWNLOADS
 if not exist "%PROJ_DIR%\.git" (
-    git clone -b 1.9.6 https://github.com/open-source-parsers/jsoncpp %PROJ_DIR%
+    git clone https://github.com/Perlmint/glew-cmake %PROJ_DIR%
 ) else (
     echo 仓库已存在，跳过下载
 )

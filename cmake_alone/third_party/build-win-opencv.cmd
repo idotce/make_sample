@@ -5,9 +5,9 @@ set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
 
 set PWD=%~dp0
-set PROJ_DIR=%PWD%\opencv
-set BUILD_DIR=%PWD%\_build
-set PROJ_OUT=%PWD%\..\extern\opencv
+set PROJ_DIR=%PWD%\_download\opencv
+set BUILD_DIR=%PROJ_DIR%\_build
+set BUILD_OUT=%PWD%\opencv
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN="Visual Studio 16 2019"
@@ -15,7 +15,7 @@ set "CMAKE_DIR=c:\cmake\bin"
 set "PATH=%CMAKE_DIR%;%PATH%"
 
 :: 确保输出目录存在
-if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
+if not exist "%BUILD_OUT%" mkdir "%BUILD_OUT%"
 
 set CMAKE_OPT= ^
     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
@@ -28,15 +28,12 @@ set CMAKE_OPT= ^
     -DBUILD_TESTS=OFF ^
     -DBUILD_PERF_TESTS=OFF ^
     -DBUILD_DOCS=OFF ^
-    -DWITH_IPP=ON ^
-    -DOPENCV_IPP=ON ^
-    -DENABLE_IPPICV=ON ^
     -DBUILD_opencv_java=OFF ^
     -DBUILD_opencv_python=OFF ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%PROJ_OUT%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%PROJ_OUT%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%PROJ_OUT%/bin ^
-    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
+    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%BUILD_OUT%/lib ^
+    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%BUILD_OUT%/include ^
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%BUILD_OUT%/bin ^
+    -DCMAKE_INSTALL_PREFIX=%BUILD_OUT%
 
 :MAIN
 cls
@@ -85,8 +82,8 @@ pause >nul
 goto MAIN
 
 :APPLY_DOWNLOADS
-if not exist "opencv\.git" (
-    git clone --branch 4.6.0 https://github.com/opencv/opencv
+if not exist "%PROJ_DIR%\.git" (
+    git clone --branch 4.6.0 https://github.com/opencv/opencv %PROJ_DIR%
 ) else (
     echo 仓库已存在，跳过下载
 )

@@ -5,9 +5,9 @@ set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
 
 set PWD=%~dp0
-set PROJ_DIR=%PWD%\curl
-set BUILD_DIR=%PWD%\_build
-set PROJ_OUT=%PWD%\..\extern\curl
+set PROJ_DIR=%PWD%\_download\curl
+set BUILD_DIR=%PROJ_DIR%\_build
+set BUILD_OUT=%PWD%\curl
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN="Visual Studio 16 2019"
@@ -15,7 +15,7 @@ set "CMAKE_DIR=c:\cmake\bin"
 set "PATH=%CMAKE_DIR%;%PATH%"
 
 :: 确保输出目录存在
-if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
+if not exist "%BUILD_OUT%" mkdir "%BUILD_OUT%"
 
 set CMAKE_OPT= ^
     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
@@ -27,10 +27,10 @@ set CMAKE_OPT= ^
     -DCURL_USE_LIBPSL=OFF ^
     -DBUILD_CURL_EXE=OFF ^
     -DBUILD_TESTING=OFF ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%PROJ_OUT%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%PROJ_OUT%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%PROJ_OUT%/bin ^
-    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
+    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%BUILD_OUT%/lib ^
+    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%BUILD_OUT%/include ^
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%BUILD_OUT%/bin ^
+    -DCMAKE_INSTALL_PREFIX=%BUILD_OUT%
 
 :MAIN
 cls
@@ -79,8 +79,8 @@ pause >nul
 goto MAIN
 
 :APPLY_DOWNLOADS
-if not exist "curl\.git" (
-    git clone -b curl-8_16_0  https://github.com/curl/curl
+if not exist "%PROJ_DIR%\.git" (
+    git clone -b curl-8_16_0  https://github.com/curl/curl %PROJ_DIR%
 ) else (
     echo 仓库已存在，跳过下载
 )

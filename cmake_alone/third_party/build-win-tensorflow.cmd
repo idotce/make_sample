@@ -5,9 +5,9 @@ set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
 
 set PWD=%~dp0
-set PROJ_DIR=%PWD%\tensorflow\tensorflow\lite\c
-set BUILD_DIR=%PWD%\_build
-set PROJ_OUT=%PWD%\..\extern\tensorflow
+set PROJ_DIR=%PWD%\_download\tensorflow
+set BUILD_DIR=%PROJ_DIR%\_build
+set BUILD_OUT=%PWD%\tensorflow
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN="Visual Studio 16 2019"
@@ -15,20 +15,21 @@ set "CMAKE_DIR=c:\cmake\bin"
 set "PATH=%CMAKE_DIR%;%PATH%"
 
 :: 确保输出目录存在
-if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
+if not exist "%BUILD_OUT%" mkdir "%BUILD_OUT%"
 
 set CMAKE_OPT= ^
     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DTFLITE_ENABLE_GPU=ON ^
+    -DBUILD_STATIC_LIBS=ON ^
     -DBUILD_SHARED_LIBS=OFF ^
+    -DTFLITE_ENABLE_GPU=ON ^
     -DTFLITE_C_BUILD_SHARED_LIBS=OFF ^
     -DTFLITE_ENABLE_XNNPACK=OFF ^
     -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=OFF ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%PROJ_OUT%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%PROJ_OUT%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%PROJ_OUT%/bin ^
-    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
+    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%BUILD_OUT%/lib ^
+    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%BUILD_OUT%/include ^
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%BUILD_OUT%/bin ^
+    -DCMAKE_INSTALL_PREFIX=%BUILD_OUT%
 
 :MAIN
 cls
@@ -56,7 +57,7 @@ if not exist "%BUILD_DIR%" (
     mkdir "%BUILD_DIR%"
 )
 cd "%BUILD_DIR%"
-%CMAKE_BIN% -G %CMAKE_GEN% %PROJ_DIR% %CMAKE_OPT%
+%CMAKE_BIN% -G %CMAKE_GEN% %PROJ_DIR%\tensorflow\lite\c %CMAKE_OPT%
 goto PAUSE_MENU
 
 :MAIN_BUILD
@@ -64,13 +65,13 @@ cd "%BUILD_DIR%"
 %CMAKE_BIN% --build . --config Release -j20
 %CMAKE_BIN% --install . --config Release
 echo 安装文件...
-if not exist "%PROJ_OUT%/include/tensorflow" mkdir "%PROJ_OUT%/include/tensorflow"
-robocopy "%PROJ_DIR%/../.." "%PROJ_OUT%/include/tensorflow" *.h /S /E /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/eigen" "%PROJ_OUT%/include" * /S /E /XD .* /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/flatbuffers/include" "%PROJ_OUT%/include" *.h /S /E /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/fp16_headers/include" "%PROJ_OUT%/include" *.h /S /E /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/gemmlowp" "%PROJ_OUT%/include" *.h /S /E /XD .* /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/abseil-cpp/absl" "%PROJ_OUT%/include/absl" *.h *.inc /S /E /NFL /NDL /NJH /NJS >nul
+if not exist "%BUILD_OUT%/include/tensorflow" mkdir "%BUILD_OUT%/include/tensorflow"
+robocopy "%PROJ_DIR%/tensorflow"             "%BUILD_OUT%/include/tensorflow"   *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/eigen"                 "%BUILD_OUT%/include"              *         /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/flatbuffers/include"   "%BUILD_OUT%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/fp16_headers/include"  "%BUILD_OUT%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/gemmlowp"              "%BUILD_OUT%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/abseil-cpp/absl"       "%BUILD_OUT%/include/absl"         *.h *.inc /S /E /XD .* /NFL /NDL /NJH /NJS >nul
 goto PAUSE_MENU
 
 :MAIN_CLEAN
@@ -86,8 +87,8 @@ pause >nul
 goto MAIN
 
 :APPLY_DOWNLOADS
-if not exist "tensorflow\.git" (
-    git clone -b v2.17.0 https://github.com/tensorflow/tensorflow
+if not exist "%PROJ_DIR%\.git" (
+    git clone -b v2.17.0 https://github.com/tensorflow/tensorflow %PROJ_DIR%
 ) else (
     echo 仓库已存在，跳过下载
 )
@@ -95,10 +96,10 @@ goto :eof
 
 :APPLY_PATCHES
 echo.正在应用补丁文件...
-call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\CMakeLists.txt" "%PWD%\tensorflow\tensorflow\lite\CMakeLists.txt"
-call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\operator.cc" "%PWD%\tensorflow\tensorflow\lite\core\c\operator.cc"
-call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\stablehlo_reduce_window.cc" "%PWD%\tensorflow\tensorflow\lite\kernels\stablehlo_reduce_window.cc"
-REM call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\c\CMakeLists.txt" "%PWD%\tensorflow\tensorflow\lite\c\CMakeLists.txt"
+call :APPLY_SINGLE_PATCH "%PWD%\patch\lite\CMakeLists.txt"                "%PROJ_DIR%\tensorflow\lite\CMakeLists.txt"
+call :APPLY_SINGLE_PATCH "%PWD%\patch\lite\operator.cc"                   "%PROJ_DIR%\tensorflow\lite\core\c\operator.cc"
+call :APPLY_SINGLE_PATCH "%PWD%\patch\lite\stablehlo_reduce_window.cc"    "%PROJ_DIR%\tensorflow\lite\kernels\stablehlo_reduce_window.cc"
+REM call :APPLY_SINGLE_PATCH "%PWD%\patch\lite\c\CMakeLists.txt" "%PROJ_DIR%\tensorflow\lite\c\CMakeLists.txt"
 echo.补丁应用完成!
 goto :eof
 

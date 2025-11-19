@@ -6,8 +6,8 @@ set https_proxy=192.168.1.5:8888
 
 set PWD=%~dp0
 set PROJ_DIR=%PWD%
-set BUILD_DIR=%PWD%\_build
-set PROJ_OUT=%PWD%\_install
+set BUILD_DIR=%PROJ_DIR%\_build
+set BUILD_OUT=%PWD%\_install
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN="Visual Studio 16 2019"
@@ -15,12 +15,12 @@ set "CMAKE_DIR=c:\cmake\bin"
 set "PATH=%CMAKE_DIR%;%PATH%"
 
 :: 确保输出目录存在
-if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
+if not exist "%BUILD_OUT%" mkdir "%BUILD_OUT%"
 
 set CMAKE_OPT= ^
     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
+    -DCMAKE_INSTALL_PREFIX=%BUILD_OUT%
 
 :MAIN
 cls
