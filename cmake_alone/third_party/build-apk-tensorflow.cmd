@@ -98,7 +98,7 @@ goto :eof
 
 :APPLY_PATCHES
 echo.正在应用补丁文件...
-REM call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\CMakeLists.txt" "%PWD%\tensorflow\tensorflow\lite\CMakeLists.txt"
+call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\CMakeLists.txt" "%PWD%\tensorflow\tensorflow\lite\CMakeLists.txt"
 call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\operator.cc" "%PWD%\tensorflow\tensorflow\lite\core\c\operator.cc"
 call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\stablehlo_reduce_window.cc" "%PWD%\tensorflow\tensorflow\lite\kernels\stablehlo_reduce_window.cc"
 REM call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\c\CMakeLists.txt" "%PWD%\tensorflow\tensorflow\lite\c\CMakeLists.txt"

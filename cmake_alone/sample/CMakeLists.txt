@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
-project(Test)
+project(test)
 
 # ======================== 全局基础配置 ========================
-# 主项目使用 C++17 标准
-set(CMAKE_CXX_STANDARD 17)
+# 主项目使用 C++20 标准
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # MSVC 静态运行时配置
@@ -38,7 +38,12 @@ if(WIN32)
     include_directories(${THIRD_PARTY_DIR}/opencv/include)
     link_directories(${THIRD_PARTY_DIR}/opencv/x64/vc16/staticlib)
     #
-    file(GLOB OPENCV_LIBS "${THIRD_PARTY_DIR}/opencv/x64/vc16/staticlib/*.lib")
+    file(GLOB OPENCV_LIBS_RAW "${THIRD_PARTY_DIR}/opencv/x64/vc16/staticlib/*.lib")
+    set(OPENCV_LIBS "")
+    foreach(LIB_FILE ${OPENCV_LIBS_RAW})
+        get_filename_component(LIB_NAME ${LIB_FILE} NAME)
+        list(APPEND OPENCV_LIBS ${LIB_NAME})
+    endforeach()
 elseif(ANDROID)
     include_directories(${THIRD_PARTY_DIR}/opencv/sdk/native/jni/include)
     link_directories(${THIRD_PARTY_DIR}/opencv/sdk/native/staticlibs/arm64-v8a)
@@ -59,12 +64,18 @@ endif()
 
 # TfLite
 include_directories(${THIRD_PARTY_DIR}/tensorflow/include)
-link_directories(${THIRD_PARTY_DIR}/tensorflow/lib)
 if(WIN32)
-    file(GLOB TFLITE_LIBS "${THIRD_PARTY_DIR}/tensorflow/lib/Release/*.lib")
+    link_directories(${THIRD_PARTY_DIR}/tensorflow/lib/Release)
+    file(GLOB TFLITE_LIBS_RAW "${THIRD_PARTY_DIR}/tensorflow/lib/Release/*.lib")
+    set(TFLITE_LIBS tensorflow-lite)
+    foreach(LIB_FILE ${TFLITE_LIBS_RAW})
+        get_filename_component(LIB_NAME ${LIB_FILE} NAME)
+        list(APPEND TFLITE_LIBS ${LIB_NAME})
+    endforeach()
 elseif(ANDROID)
+    link_directories(${THIRD_PARTY_DIR}/tensorflow/lib)
     file(GLOB TFLITE_LIBS_RAW "${THIRD_PARTY_DIR}/tensorflow/lib/*.a")
-    set(TFLITE_LIBS "tensorflow-lite")
+    set(TFLITE_LIBS tensorflow-lite)
     foreach(LIB_FILE ${TFLITE_LIBS_RAW})
         get_filename_component(LIB_NAME ${LIB_FILE} NAME)
         string(REGEX REPLACE "^lib(.*)\\.a$" "\\1" LIB_NAME_CLEAN ${LIB_NAME})
@@ -72,7 +83,13 @@ elseif(ANDROID)
     endforeach()
 endif()
 
+#list(REMOVE_ITEM TFLITE_LIBS "tensorflow-lite.lib")
+#list(REMOVE_ITEM TFLITE_LIBS "tensorflowlite_c.lib")
+#message(STATUS "${TFLITE_LIBS}")
+
 # ======================== 主程序配置 ========================
+include_directories(src)
+
 aux_source_directory(src SRC_LIST)
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 
@@ -91,6 +108,7 @@ if(WIN32)
         _CRT_SECURE_NO_WARNINGS
         CURL_STATICLIB
         OPENCV_STATIC  # 添加OpenCV静态链接宏
+        TFL_STATIC_LIBRARY_BUILD # TFLITE
         NOMINMAX # TFLITE
     )
 elseif(ANDROID)
