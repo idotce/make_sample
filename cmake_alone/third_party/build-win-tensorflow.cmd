@@ -67,7 +67,8 @@ cd "%BUILD_DIR%"
 echo 安装文件...
 if not exist "%BUILD_OUT%/include/tensorflow" mkdir "%BUILD_OUT%/include/tensorflow"
 robocopy "%PROJ_DIR%/tensorflow"             "%BUILD_OUT%/include/tensorflow"   *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/eigen"                 "%BUILD_OUT%/include"              *         /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/eigen"                 "%BUILD_OUT%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%BUILD_DIR%/eigen/Eigen"           "%BUILD_OUT%/include/eigen"        *         /S /E /XD .* /NFL /NDL /NJH /NJS >nul
 robocopy "%BUILD_DIR%/flatbuffers/include"   "%BUILD_OUT%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
 robocopy "%BUILD_DIR%/fp16_headers/include"  "%BUILD_OUT%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
 robocopy "%BUILD_DIR%/gemmlowp"              "%BUILD_OUT%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
