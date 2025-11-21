@@ -83,8 +83,10 @@ elseif(ANDROID)
     endforeach()
 endif()
 
-#list(REMOVE_ITEM TFLITE_LIBS "tensorflow-lite.lib")
-#list(REMOVE_ITEM TFLITE_LIBS "tensorflowlite_c.lib")
+# glew
+include_directories(${THIRD_PARTY_DIR}/glew/include)
+link_directories(${THIRD_PARTY_DIR}/glew/lib)
+
 #message(STATUS "${TFLITE_LIBS}")
 
 # ======================== 主程序配置 ========================
@@ -99,18 +101,22 @@ target_link_libraries(${PROJECT_NAME}
     jsoncpp
     ${OPENCV_LIBS}
     ${TFLITE_LIBS}
+    glew
+)
+
+# 宏定义
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    _CRT_SECURE_NO_WARNINGS
+    CURL_STATICLIB  # Curl
+    OPENCV_STATIC  # OpenCV
+    TFL_STATIC_LIBRARY_BUILD # TFLITE
+    NOMINMAX # TFLITE
+    GLEW_STATIC # glew
 )
 
 # 针对Windows的特殊配置
 if(WIN32)
-    target_link_libraries(${PROJECT_NAME} ws2_32 wldap32 crypt32 iphlpapi secur32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        _CRT_SECURE_NO_WARNINGS
-        CURL_STATICLIB
-        OPENCV_STATIC  # 添加OpenCV静态链接宏
-        TFL_STATIC_LIBRARY_BUILD # TFLITE
-        NOMINMAX # TFLITE
-    )
+    target_link_libraries(${PROJECT_NAME} ws2_32 wldap32 crypt32 iphlpapi secur32 opengl32)
 elseif(ANDROID)
     target_link_libraries(${PROJECT_NAME} log dl)
 endif()

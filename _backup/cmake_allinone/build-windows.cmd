@@ -1,13 +1,10 @@
 @echo off
 chcp 65001 >nul
 
-set http_proxy=192.168.1.5:8888
-set https_proxy=192.168.1.5:8888
-
 set PWD=%~dp0
-set PROJ_DIR=%PWD%\_download\freetype
-set BUILD_DIR=%PROJ_DIR%\_build
-set BUILD_OUT=%PWD%\freetype
+set PROJ_DIR=%PWD%
+set BUILD_DIR=%PWD%/_build
+set PROJ_OUT=%PWD%/_out
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN="Visual Studio 16 2019"
@@ -15,17 +12,12 @@ set "CMAKE_DIR=c:\cmake\bin"
 set "PATH=%CMAKE_DIR%;%PATH%"
 
 :: 确保输出目录存在
-if not exist "%BUILD_OUT%" mkdir "%BUILD_OUT%"
+if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
 
 set CMAKE_OPT= ^
     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DBUILD_STATIC_LIBS=ON ^
-    -DBUILD_SHARED_LIBS=OFF ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%BUILD_OUT%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%BUILD_OUT%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%BUILD_OUT%/bin ^
-    -DCMAKE_INSTALL_PREFIX=%BUILD_OUT%
+    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
 
 :MAIN
 cls
@@ -47,10 +39,11 @@ pause
 goto MAIN
 
 :MAIN_CMAKE
-call :APPLY_DOWNLOADS
 if not exist "%BUILD_DIR%" (
     mkdir "%BUILD_DIR%"
 )
+set http_proxy=192.168.1.5:8888
+set https_proxy=192.168.1.5:8888
 cd "%BUILD_DIR%"
 %CMAKE_BIN% -G %CMAKE_GEN% %PROJ_DIR% %CMAKE_OPT%
 goto PAUSE_MENU
@@ -72,12 +65,3 @@ echo.操作完成，按任意键返回主菜单!
 cd %PWD%
 pause >nul
 goto MAIN
-
-:APPLY_DOWNLOADS
-if not exist "%PROJ_DIR%\CMakeLists.txt" (
-    if not exist "freetype-2.14.1.tar.xz" wget https://mirror.accum.se/mirror/gnu.org/savannah/freetype/freetype-2.14.1.tar.xz
-    tar xvf freetype-2.14.1.tar.xz -C %PROJ_DIR% --strip-components=1
-) else (
-    echo 仓库已存在，跳过下载
-)
-goto :eof

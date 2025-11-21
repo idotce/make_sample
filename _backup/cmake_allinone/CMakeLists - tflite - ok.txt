@@ -1,0 +1,90 @@
+cmake_minimum_required(VERSION 3.10)
+project(Test)
+
+# 设置C++标准
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(MSVC)
+    #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+endif()
+
+# 强制编译静态库（全局设置）
+set(BUILD_STATIC_LIBS ON CACHE BOOL "Build static libraries" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
+
+# 设置第三方库目录
+set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/third_party)
+
+# ======================== tflitec 配置 ========================
+set(TFLITEC_SOURCE_DIR ${THIRD_PARTY_DIR}/tensorflow/tensorflow/lite/c)
+set(TFLITEC_BINARY_DIR ${CMAKE_BINARY_DIR}/third_party/tflitec)
+file(MAKE_DIRECTORY ${TFLITEC_BINARY_DIR})
+
+set(TFLITE_ENABLE_GPU ON CACHE BOOL "" FORCE)
+set(TFLITE_C_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(TFLITE_ENABLE_XNNPACK OFF CACHE BOOL "" FORCE)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(${TFLITEC_SOURCE_DIR} ${TFLITEC_BINARY_DIR} EXCLUDE_FROM_ALL)
+include_directories(
+    ${TFLITEC_SOURCE_DIR}/../../include
+    ${TFLITEC_BINARY_DIR}
+)
+set(TFLITEC_OUTPUT_LIB ${TFLITEC_BINARY_DIR}/tflitec/lib)
+set(TFLITEC_OUTPUT_BIN ${TFLITEC_BINARY_DIR}/tflitec/bin)
+set_target_properties(tensorflow-lite PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY ${TFLITEC_OUTPUT_LIB}  # 静态库输出到 tflitec/lib
+    LIBRARY_OUTPUT_DIRECTORY ${TFLITEC_OUTPUT_LIB}  # 动态库（若启用）输出到 tflitec/lib
+    RUNTIME_OUTPUT_DIRECTORY ${TFLITEC_OUTPUT_BIN}  # 若 tflitec 生成工具可执行文件，输出到 tflitec/bin
+    # 多配置分离（可选）
+    ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${TFLITEC_OUTPUT_LIB}/Debug
+    ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${TFLITEC_OUTPUT_LIB}/Release
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${TFLITEC_OUTPUT_BIN}/Debug
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${TFLITEC_OUTPUT_BIN}/Release
+)
+
+# ======================== 主程序配置 ========================
+aux_source_directory(src SRC_LIST)
+add_executable(${PROJECT_NAME} ${SRC_LIST})
+
+# 链接库 - 使用目标名称而非库文件名，确保依赖关系正确
+link_directories(${OpenCV_LIB_DIR})
+target_link_libraries(${PROJECT_NAME}
+    tensorflow-lite
+)
+
+# 针对Windows的特殊配置
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} ws2_32 wldap32 crypt32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        _CRT_SECURE_NO_WARNINGS
+        CURL_STATICLIB
+        OPENCV_STATIC  # 添加OpenCV静态链接宏
+        NOMINMAX # TFLITE
+    )
+endif()
+
+# 针对Linux的特殊配置
+if(UNIX AND NOT APPLE)
+    target_link_libraries(${PROJECT_NAME} pthread dl)
+endif()
+
+# utf8编码支持
+if(MSVC)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
+    endif()
+endif()
+
+# 安装配置
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION bin
+    CONFIGURATIONS Release
+)
