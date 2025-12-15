@@ -1,10 +1,13 @@
 @echo off
 chcp 65001 >nul
 
+set http_proxy=192.168.1.5:8888
+set https_proxy=192.168.1.5:8888
+
 set PWD=%~dp0
 set PROJ_DIR=%PWD%
-set BUILD_DIR=%PWD%/_build
-set PROJ_OUT=%PWD%/_out
+set BUILD_DIR=%PWD%\_build
+set PROJ_OUT=%PWD%\_install
 
 set CMAKE_BIN=cmake.exe
 set CMAKE_GEN="Visual Studio 16 2019"
@@ -42,8 +45,6 @@ goto MAIN
 if not exist "%BUILD_DIR%" (
     mkdir "%BUILD_DIR%"
 )
-set http_proxy=192.168.1.5:8888
-set https_proxy=192.168.1.5:8888
 cd "%BUILD_DIR%"
 %CMAKE_BIN% -G %CMAKE_GEN% %PROJ_DIR% %CMAKE_OPT%
 goto PAUSE_MENU
