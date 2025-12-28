@@ -18,14 +18,12 @@ export STRIP=${CROSS}strip
 pwd_dir=$(cd `dirname $0`; pwd)
 echo "当前工作目录: ${pwd_dir}"
 
-export EXTERN_PREFIX=${pwd_dir}/_out/userdata
-export CFLAGS="-Os -static -I${TOOLCHAIN}/aarch64-linux-gnu/include -I${EXTERN_PREFIX}/include"  # 优化体积并静态编译 加 ncurses 头文件路径
-export LDFLAGS="-static -L${TOOLCHAIN}/aarch64-linux-gnu/lib -L${EXTERN_PREFIX}/lib -lpthread -lncursesw"  # 静态链接 链接 ncurses 静态库
-export CPPFLAGS="-I${NCURSES_PREFIX}/include -I${TOOLCHAIN}/aarch64-linux-gnu/include"
+export CFLAGS="-Os -static -fPIC"
+export LDFLAGS="-static -lpthread -lm"
 
-gz_url=https://mirror.truenetwork.ru/slackware/slackware/source/a/minicom/minicom-2.8.tar.lz
-gz_file=minicom-2.8.tar.lz
-code_dir=minicom-2.8
+gz_url=https://code.videolan.org/videolan/x264/-/archive/master/x264-master.tar.gz
+gz_file=x264-master.tar.gz
+code_dir=x264-master
 
 build_dir="_build"
 out_dir="_out"
@@ -35,7 +33,7 @@ if [ ! -f $gz_file ]; then
 fi
 
 if [ ! -d $code_dir ]; then
-    lzip -dc $gz_file | tar -xf - || { echo "解压源码失败"; exit 1; }
+    tar -xzvf $gz_file || { echo "解压源码失败"; exit 1; }
 fi
 
 if [ ! -d ${pwd_dir}/${out_dir} ]; then
@@ -47,18 +45,16 @@ if [ -d $code_dir ]; then
     rm -rf $build_dir; mkdir $build_dir; cd $build_dir
     make distclean >/dev/null 2>&1 || true  # 清理可能的旧编译文件
 
-    sed -i '1i #include <ncursesw/ncurses.h>\n#include <ncursesw/curses.h>\nextern char *BC;\nextern char *BS;' ../src/window.c
-
     ../configure \
+        --cross-prefix=${CROSS} \
         --prefix=/userdata \
         --build=x86_64-linux-gnu \
         --host=aarch64-linux-gnu \
-        --disable-dependency-tracking \
-        --without-x \
-        --enable-static=yes \
-        --enable-shared=no \
-        ac_cv_lib_ncurses5_panel=yes \
-        ac_cv_lib_ncurses_panel=yes
+        --enable-static \
+        --disable-shared \
+        --disable-opencl \
+        --extra-cflags="${CFLAGS}" \
+        --extra-ldflags="${LDFLAGS}"
 
     make -j$(nproc) || { echo "编译失败"; exit 1; }
     make install DESTDIR=${pwd_dir}/${out_dir}/ || { echo "安装失败"; exit 1; }

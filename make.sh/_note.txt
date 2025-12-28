@@ -1,1 +1,10 @@
-minicom需要ncurses, 修改window.c
+minicom需要ncurses
+ffmpeg需要x264
+
+prefix根据开发板不同
+--prefix=/usr/local \
+--prefix=/userdata \
+
+host要使用实际的不能使用通用arm-linux
+--host=arm-linux \
+--host=aarch64-linux-gnu \
