@@ -1,22 +1,24 @@
 @echo off
 chcp 65001 >nul
 
+set pwd_dir=%~dp0
 set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
+set cmake_bin=c:\cmake\bin\cmake.exe
 
-set PWD=%~dp0
-set PROJ_DIR=%PWD%\_download\curl
-set BUILD_DIR=%PROJ_DIR%\_build
-set BUILD_OUT=%PWD%\curl
+@REM 工程代码
+set base_dir=%pwd_dir%\_download
+set pack_url=https://curl.se/download/curl-8.16.0.tar.gz
+set pack_file=%pwd_dir%\_download\curl-8.16.0.tar.gz
+set proj_dir=%pwd_dir%\_download\curl-8.16.0
+set build_dir=%pwd_dir%\_download\curl-8.16.0\_build
+set build_out=%pwd_dir%\win32\curl
+if not exist "%base_dir%" mkdir "%base_dir%"
+if not exist "%build_out%" mkdir "%build_out%"
+if not exist "%pack_file%" wget "%pack_url%" -O "%pack_file%"
+if not exist "%proj_dir%" tar -xvf "%pack_file%" -C "%base_dir%"
 
-set CMAKE_BIN=cmake.exe
-set CMAKE_GEN="Visual Studio 16 2019"
-set "CMAKE_DIR=c:\cmake\bin"
-set "PATH=%CMAKE_DIR%;%PATH%"
-
-:: 确保输出目录存在
-if not exist "%BUILD_OUT%" mkdir "%BUILD_OUT%"
-
+@REM CMAKE选项
 set CMAKE_OPT= ^
     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
     -DCMAKE_BUILD_TYPE=Release ^
@@ -27,10 +29,11 @@ set CMAKE_OPT= ^
     -DCURL_USE_LIBPSL=OFF ^
     -DBUILD_CURL_EXE=OFF ^
     -DBUILD_TESTING=OFF ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%BUILD_OUT%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%BUILD_OUT%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%BUILD_OUT%/bin ^
-    -DCMAKE_INSTALL_PREFIX=%BUILD_OUT%
+    -DCMAKE_INSTALL_PREFIX=%build_out% ^
+    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%build_out%/lib ^
+    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=%build_out%/lib ^
+    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%build_out%/include ^
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%build_out%/bin
 
 :MAIN
 cls
@@ -52,36 +55,29 @@ pause
 goto MAIN
 
 :MAIN_CMAKE
-call :APPLY_DOWNLOADS
-if not exist "%BUILD_DIR%" (
-    mkdir "%BUILD_DIR%"
+if not exist "%build_dir%" (
+    mkdir "%build_dir%"
 )
-cd "%BUILD_DIR%"
-%CMAKE_BIN% -G %CMAKE_GEN% %PROJ_DIR% %CMAKE_OPT%
+cd "%build_dir%"
+%cmake_bin% -G "Visual Studio 16 2019" %proj_dir% %CMAKE_OPT%
 goto PAUSE_MENU
 
 :MAIN_BUILD
-cd "%BUILD_DIR%"
-%CMAKE_BIN% --build . --config Release -j20
-%CMAKE_BIN% --install . --config Release
+cd "%build_dir%"
+%cmake_bin% --build . --config Release -j20
+%cmake_bin% --install . --config Release
 goto PAUSE_MENU
 
 :MAIN_CLEAN
-if exist "%BUILD_DIR%" (
-    rd /q /s "%BUILD_DIR%"
+if exist "%build_dir%" (
+    rd /q /s "%build_dir%"
 )
 goto PAUSE_MENU
 
 :PAUSE_MENU
 echo.操作完成，按任意键返回主菜单!
-cd %PWD%
+cd %pwd_dir%
 pause >nul
 goto MAIN
 
-:APPLY_DOWNLOADS
-if not exist "%PROJ_DIR%\.git" (
-    git clone -b curl-8_16_0  https://github.com/curl/curl %PROJ_DIR%
-) else (
-    echo 仓库已存在，跳过下载
-)
 goto :eof
