@@ -1,0 +1,17 @@
+minicom需要ncurses
+ffmpeg需要x264
+
+prefix根据开发板不同
+--prefix=/usr/local \
+--prefix=/userdata \
+
+host要使用实际的不能使用通用arm-linux
+--host=arm-linux \
+--host=aarch64-linux-gnu \
+
+
+export CFLAGS="-Os -static -fPIC"
+export LDFLAGS="-static -lpthread -lm"
+
+export CFLAGS="-Os -static -I${TOOLCHAIN}/aarch64-linux-gnu/include -I${pwd_dir}/_install/userdata/include"
+export LDFLAGS="-static -L${TOOLCHAIN}/aarch64-linux-gnu/lib -L${pwd_dir}/_install/userdata/lib -lpthread -lncursesw"
