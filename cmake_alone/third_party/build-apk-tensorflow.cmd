@@ -4,8 +4,10 @@ chcp 65001 >nul
 set pwd_dir=%~dp0
 set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
-set cmake_bin=d:\Documents\Android\Sdk\cmake\3.18.1\bin\cmake.exe
+set "cmake_dir=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
 set "ndk_dir=d:\Documents\Android\Sdk\ndk\21.0.6113669"
+set cmake_bin=d:\Documents\Android\Sdk\cmake\3.18.1\bin\cmake.exe
+set "PATH=%cmake_dir%;%PATH%"
 
 @REM 工程代码
 set base_dir=%pwd_dir%\_download

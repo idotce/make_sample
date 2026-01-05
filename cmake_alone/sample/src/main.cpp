@@ -1,4 +1,3 @@
-// src/main.cpp - 简化版本，避免操作符API
 #include <iostream>
 #include <string>
 #include <vector>
@@ -12,7 +11,9 @@
 #define TEST_JSON 1
 #define TEST_OPENCV 1
 #define TEST_TENSORFLOW_LITE 1
+#ifdef _WIN32
 #define TEST_GLEW 1
+#endif
 
 #if TEST_CURL
 #include <curl/curl.h>

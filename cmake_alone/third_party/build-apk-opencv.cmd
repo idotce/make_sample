@@ -4,8 +4,10 @@ chcp 65001 >nul
 set pwd_dir=%~dp0
 set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
-set cmake_bin=d:\Documents\Android\Sdk\cmake\3.18.1\bin\cmake.exe
+set "cmake_dir=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
 set "ndk_dir=d:\Documents\Android\Sdk\ndk\21.0.6113669"
+set cmake_bin=d:\Documents\Android\Sdk\cmake\3.18.1\bin\cmake.exe
+set "PATH=%cmake_dir%;%PATH%"
 
 @REM 工程代码
 set base_dir=%pwd_dir%\_download
@@ -26,11 +28,6 @@ set CMAKE_OPT= ^
     -DANDROID_ABI=arm64-v8a ^
     -DANDROID_PLATFORM=android-21 ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DBUILD_JAVA=OFF ^
-    -DBUILD_FAT_JAVA_LIB=OFF ^
-    -DBUILD_ANDROID_SERVICE=OFF ^
-    -DBUILD_ANDROID_EXAMPLES=OFF ^
-    -DBUILD_ANDROID_PROJECTS=OFF ^
     -DBUILD_STATIC_LIBS=ON ^
     -DBUILD_SHARED_LIBS=OFF ^
     -DBUILD_opencv_world=ON ^
@@ -42,6 +39,11 @@ set CMAKE_OPT= ^
     -DWITH_IPP=ON ^
     -DOPENCV_IPP=ON ^
     -DENABLE_IPPICV=ON ^
+    -DBUILD_JAVA=OFF ^
+    -DBUILD_FAT_JAVA_LIB=OFF ^
+    -DBUILD_ANDROID_SERVICE=OFF ^
+    -DBUILD_ANDROID_EXAMPLES=OFF ^
+    -DBUILD_ANDROID_PROJECTS=OFF ^
     -DBUILD_opencv_java=OFF ^
     -DBUILD_opencv_python=OFF ^
     -DCMAKE_INSTALL_PREFIX=%build_out% ^

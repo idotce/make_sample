@@ -33,7 +33,7 @@ if(WIN32)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(CURL_LIBS curl)
 elseif(ANDROID)
-    link_directories(${THIRD_PARTY_DIR}/patch/openssl_arm64/lib)
+    link_directories(${CMAKE_SOURCE_DIR}/../third_party/patch/openssl_arm64/lib)
     set(CURL_LIBS curl ssl crypto)
 endif()
 
@@ -68,6 +68,22 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         string(REGEX REPLACE "^lib(.*)\\.a$" "\\1" LIB_NAME_CLEAN ${LIB_NAME})
         list(APPEND OPENCV_LIBS ${LIB_NAME_CLEAN})
     endforeach()
+elseif(ANDROID)
+    include_directories(${THIRD_PARTY_DIR}/opencv/sdk/native/jni/include)
+    link_directories(${THIRD_PARTY_DIR}/opencv/sdk/native/staticlibs/arm64-v8a)
+    link_directories(${THIRD_PARTY_DIR}/opencv/sdk/native/3rdparty/libs/arm64-v8a)
+    #
+    file(GLOB OPENCV_STATIC_LIBS "${THIRD_PARTY_DIR}/opencv/sdk/native/staticlibs/arm64-v8a/*.a")
+    file(GLOB OPENCV_3RDPARTY_LIBS "${THIRD_PARTY_DIR}/opencv/sdk/native/3rdparty/libs/arm64-v8a/*.a")
+    set(OPENCV_LIBS_RAW "")
+    list(APPEND OPENCV_LIBS_RAW ${OPENCV_STATIC_LIBS})
+    list(APPEND OPENCV_LIBS_RAW ${OPENCV_3RDPARTY_LIBS})
+    set(OPENCV_LIBS "")
+    foreach(LIB_FILE ${OPENCV_LIBS_RAW})
+        get_filename_component(LIB_NAME ${LIB_FILE} NAME)
+        string(REGEX REPLACE "^lib(.*)\\.a$" "\\1" LIB_NAME_CLEAN ${LIB_NAME})
+        list(APPEND OPENCV_LIBS ${LIB_NAME_CLEAN})
+    endforeach()
 endif()
 
 # TfLite
@@ -89,11 +105,23 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         string(REGEX REPLACE "^lib(.*)\\.a$" "\\1" LIB_NAME_CLEAN ${LIB_NAME})
         list(APPEND TFLITE_LIBS ${LIB_NAME_CLEAN})
     endforeach()
+elseif(ANDROID)
+    link_directories(${THIRD_PARTY_DIR}/tensorflow/lib)
+    file(GLOB TFLITE_LIBS_RAW "${THIRD_PARTY_DIR}/tensorflow/lib/*.a")
+    set(TFLITE_LIBS tensorflow-lite)
+    foreach(LIB_FILE ${TFLITE_LIBS_RAW})
+        get_filename_component(LIB_NAME ${LIB_FILE} NAME)
+        string(REGEX REPLACE "^lib(.*)\\.a$" "\\1" LIB_NAME_CLEAN ${LIB_NAME})
+        list(APPEND TFLITE_LIBS ${LIB_NAME_CLEAN})
+    endforeach()
 endif()
 
 # glew
-include_directories(${THIRD_PARTY_DIR}/glew/include)
-link_directories(${THIRD_PARTY_DIR}/glew/lib)
+if(WIN32)
+    include_directories(${THIRD_PARTY_DIR}/glew/include)
+    link_directories(${THIRD_PARTY_DIR}/glew/lib)
+    set(GLEW_LIBS "glew")
+endif()
 
 #message(STATUS "${TFLITE_LIBS}")
 
@@ -109,7 +137,7 @@ target_link_libraries(${PROJECT_NAME}
     jsoncpp
     ${OPENCV_LIBS}
     ${TFLITE_LIBS}
-    glew
+    ${GLEW_LIBS}
 )
 
 # 宏定义
@@ -122,13 +150,13 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     GLEW_STATIC # glew
 )
 
-# 针对Windows的特殊配置
+# 平台相关链接库
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} ws2_32 wldap32 crypt32 iphlpapi secur32 opengl32)
-elseif(ANDROID)
-    target_link_libraries(${PROJECT_NAME} log dl)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(${PROJECT_NAME} ldap z /opt/homebrew/lib/libidn2.dylib "-framework CoreFoundation" "-framework SystemConfiguration" "-framework OpenCL")
+elseif(ANDROID)
+    target_link_libraries(${PROJECT_NAME} log dl)
 endif()
 
 # MSVC UTF-8 编码支持
@@ -139,5 +167,8 @@ endif()
 # ======================== 安装配置 ========================
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    PUBLIC_HEADER DESTINATION include
     CONFIGURATIONS Release
 )
