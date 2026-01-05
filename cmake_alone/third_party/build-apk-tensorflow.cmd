@@ -1,37 +1,41 @@
 @echo off
 chcp 65001 >nul
 
+set pwd_dir=%~dp0
 set http_proxy=192.168.1.5:8888
 set https_proxy=192.168.1.5:8888
+set cmake_bin=d:\Documents\Android\Sdk\cmake\3.18.1\bin\cmake.exe
+set "ndk_dir=d:\Documents\Android\Sdk\ndk\21.0.6113669"
 
-set PWD=%~dp0
-set PROJ_DIR=%PWD%\tensorflow\tensorflow\lite\c
-set BUILD_DIR=%PWD%\_build
-set PROJ_OUT=%PWD%\..\extern\tensorflow
+@REM 工程代码
+set base_dir=%pwd_dir%\_download
+set pack_url=https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.17.0.tar.gz
+set pack_file=%pwd_dir%\_download\tensorflow-2.17.0.tar.gz
+set proj_dir=%pwd_dir%\_download\tensorflow-2.17.0
+set build_dir=%pwd_dir%\_download\tensorflow-2.17.0\_build
+set build_out=%pwd_dir%\apk\tensorflow
+if not exist "%base_dir%" mkdir "%base_dir%"
+if not exist "%build_out%" mkdir "%build_out%"
+if not exist "%pack_file%" wget "%pack_url%" -O "%pack_file%"
+if not exist "%proj_dir%" tar -xvf "%pack_file%" -C "%base_dir%"
 
-set CMAKE_BIN=cmake.exe
-set CMAKE_GEN=Ninja
-set "CMAKE_DIR=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
-set "NDK_DIR=d:\Documents\Android\Sdk\ndk\21.0.6113669"
-set "PATH=%CMAKE_DIR%;%PATH%"
-
-:: 确保输出目录存在
-if not exist "%PROJ_OUT%" mkdir "%PROJ_OUT%"
-
+@REM CMAKE选项
 set CMAKE_OPT= ^
-    -DCMAKE_TOOLCHAIN_FILE=%NDK_DIR%\build\cmake\android.toolchain.cmake ^
+    -DCMAKE_TOOLCHAIN_FILE=%ndk_dir%\build\cmake\android.toolchain.cmake ^
     -DCMAKE_MAKE_PROGRAM=ninja ^
     -DANDROID_ABI=arm64-v8a ^
     -DANDROID_PLATFORM=android-21 ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DTFLITE_ENABLE_GPU=ON ^
+    -DBUILD_STATIC_LIBS=ON ^
     -DBUILD_SHARED_LIBS=OFF ^
+    -DTFLITE_ENABLE_GPU=ON ^
     -DTFLITE_C_BUILD_SHARED_LIBS=OFF ^
     -DTFLITE_ENABLE_XNNPACK=OFF ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%PROJ_OUT%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%PROJ_OUT%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%PROJ_OUT%/bin ^
-    -DCMAKE_INSTALL_PREFIX=%PROJ_OUT%
+    -DCMAKE_INSTALL_PREFIX=%build_out% ^
+    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%build_out%/lib ^
+    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=%build_out%/lib ^
+    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%build_out%/include ^
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%build_out%/bin
 
 :MAIN
 cls
@@ -53,55 +57,49 @@ pause
 goto MAIN
 
 :MAIN_CMAKE
-call :APPLY_DOWNLOADS
 call :APPLY_PATCHES
-if not exist "%BUILD_DIR%" (
-    mkdir "%BUILD_DIR%"
+if not exist "%build_dir%" (
+    mkdir "%build_dir%"
 )
-cd "%BUILD_DIR%"
-%CMAKE_BIN% -G %CMAKE_GEN% %PROJ_DIR% %CMAKE_OPT%
+cd "%build_dir%"
+%cmake_bin% -G "Ninja" %proj_dir%/tensorflow/lite/c %CMAKE_OPT%
 goto PAUSE_MENU
 
 :MAIN_BUILD
-cd "%BUILD_DIR%"
-%CMAKE_BIN% --build . --config Release -j20
-%CMAKE_BIN% --install . --config Release
+cd "%build_dir%"
+%cmake_bin% --build . --config Release -j20
+%cmake_bin% --install . --config Release
 echo 安装文件...
-if not exist "%PROJ_OUT%/include/tensorflow" mkdir "%PROJ_OUT%/include/tensorflow"
-robocopy "%PROJ_DIR%/../.." "%PROJ_OUT%/include/tensorflow" *.h /S /E /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/eigen" "%PROJ_OUT%/include" * /S /E /XD .* /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/flatbuffers/include" "%PROJ_OUT%/include" *.h /S /E /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/fp16_headers/include" "%PROJ_OUT%/include" *.h /S /E /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/gemmlowp" "%PROJ_OUT%/include" *.h /S /E /XD .* /NFL /NDL /NJH /NJS >nul
-robocopy "%BUILD_DIR%/abseil-cpp/absl" "%PROJ_OUT%/include/absl" *.h *.inc /S /E /NFL /NDL /NJH /NJS >nul
+if not exist "%build_out%/include/tensorflow" mkdir "%build_out%/include/tensorflow"
+robocopy "%proj_dir%/tensorflow"             "%build_out%/include/tensorflow"   *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%build_dir%/eigen"                 "%build_out%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%build_dir%/eigen/Eigen"           "%build_out%/include/eigen"        *         /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%build_dir%/flatbuffers/include"   "%build_out%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%build_dir%/fp16_headers/include"  "%build_out%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%build_dir%/gemmlowp"              "%build_out%/include"              *.h       /S /E /XD .* /NFL /NDL /NJH /NJS >nul
+robocopy "%build_dir%/abseil-cpp/absl"       "%build_out%/include/absl"         *.h *.inc /S /E /XD .* /NFL /NDL /NJH /NJS >nul
 goto PAUSE_MENU
 
 :MAIN_CLEAN
-if exist "%BUILD_DIR%" (
-    rd /q /s "%BUILD_DIR%"
+if exist "%build_dir%" (
+    rd /q /s "%build_dir%"
 )
 goto PAUSE_MENU
 
 :PAUSE_MENU
 echo.操作完成，按任意键返回主菜单!
-cd %PWD%
+cd %pwd_dir%
 pause >nul
 goto MAIN
 
-:APPLY_DOWNLOADS
-if not exist "tensorflow\.git" (
-    git clone -b v2.17.0 https://github.com/tensorflow/tensorflow
-) else (
-    echo 仓库已存在，跳过下载
-)
 goto :eof
 
 :APPLY_PATCHES
 echo.正在应用补丁文件...
-call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\CMakeLists.txt" "%PWD%\tensorflow\tensorflow\lite\CMakeLists.txt"
-call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\operator.cc" "%PWD%\tensorflow\tensorflow\lite\core\c\operator.cc"
-call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\stablehlo_reduce_window.cc" "%PWD%\tensorflow\tensorflow\lite\kernels\stablehlo_reduce_window.cc"
-REM call :APPLY_SINGLE_PATCH "%PWD%\..\patch\lite\c\CMakeLists.txt" "%PWD%\tensorflow\tensorflow\lite\c\CMakeLists.txt"
+call :APPLY_SINGLE_PATCH "%pwd_dir%\patch\lite\CMakeLists.txt"                "%proj_dir%\tensorflow\lite\CMakeLists.txt"
+call :APPLY_SINGLE_PATCH "%pwd_dir%\patch\lite\operator.cc"                   "%proj_dir%\tensorflow\lite\core\c\operator.cc"
+call :APPLY_SINGLE_PATCH "%pwd_dir%\patch\lite\stablehlo_reduce_window.cc"    "%proj_dir%\tensorflow\lite\kernels\stablehlo_reduce_window.cc"
+REM call :APPLY_SINGLE_PATCH "%pwd_dir%\patch\lite\c\CMakeLists.txt" "%proj_dir%\tensorflow\lite\c\CMakeLists.txt"
 echo.补丁应用完成!
 goto :eof
 

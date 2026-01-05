@@ -129,12 +129,6 @@ while true; do
         *) echo "" && echo "请选择一个有效的功能!";;
     esac
     echo ""
-    echo "操作完成，按Esc返回主菜单!"
-    while true; do
-    if read -t 1 -n 1 -r key 2>/dev/null; then
-        if [[ "$key" == $'\e' ]]; then
-            break
-        fi
-    fi
-    done
+    echo "操作完成，按任意键返回主菜单!"
+    read -n 1 -s -r
 done
