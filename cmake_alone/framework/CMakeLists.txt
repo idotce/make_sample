@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(test)
+project(s3dapi VERSION 1.0 LANGUAGES C CXX)
 
 # ======================== 全局基础配置 ========================
 # 主项目使用 C++20 标准
@@ -125,11 +125,32 @@ endif()
 
 #message(STATUS "${TFLITE_LIBS}")
 
-# ======================== 主程序配置 ========================
-include_directories(src)
+# ======================== Framework配置 ========================
+set(FRAMEWORK_SOURCES
+    src/test.cpp  # 示例：你的curl调用逻辑代码
+    src/test.h # 示例：对外暴露的头文件
+)
 
-aux_source_directory(src SRC_LIST)
-add_executable(${PROJECT_NAME} ${SRC_LIST})
+add_library(${PROJECT_NAME} SHARED
+    ${FRAMEWORK_SOURCES}
+)
+
+# 设置Framework的属性（macOS特有）
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    # 核心：指定为Framework类型
+    FRAMEWORK TRUE
+    # Framework的基本信息
+    FRAMEWORK_VERSION 1.0
+    MACOSX_FRAMEWORK_IDENTIFIER com.yourcompany.MyCurlFramework
+    # 头文件配置（Framework的Headers目录）
+    PUBLIC_HEADER include/MyCurlWrapper.h
+    # 架构配置（可选，指定支持的CPU架构）
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    # macOS最小版本要求（根据你的需求调整）
+    MACOSX_DEPLOYMENT_TARGET 10.15
+)
 
 # 宏定义
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -166,7 +187,7 @@ endif()
 
 # ======================== 安装配置 ========================
 install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION bin
+    FRAMEWORK DESTINATION Frameworks
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include
