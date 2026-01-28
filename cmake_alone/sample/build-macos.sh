@@ -21,20 +21,15 @@ fi
 # CMAKE选项
 CMAKE_OPT=(
     # 系统选项
+    -DCMAKE_SYSTEM_NAME=Darwin
+    -DCMAKE_OSX_SYSROOT=macosx
     -DCMAKE_OSX_ARCHITECTURES=arm64
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
-    -DCMAKE_SYSTEM_PROCESSOR=arm64
-    -DCMAKE_APPLE_SILICON_PROCESSOR=arm64
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
     # 库类型
     -DCMAKE_BUILD_TYPE=Release
     # 功能和依赖库
     # 输出配置
-    #-DCMAKE_POSITION_INDEPENDENT_CODE=ON
     -DCMAKE_INSTALL_PREFIX="$build_out"
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY="$build_out/include"
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$build_out/bin"
 )
 
 # 主菜单函数
@@ -52,6 +47,9 @@ main_cmake() {
         mkdir -p "$build_dir" || { echo "创建编译目录失败!"; exit 1; }
     fi
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
+    if [ -f "CMakeCache.txt" ]; then
+        rm -f CMakeCache.txt
+    fi
 
     echo "正在cmake..."
     "$cmake_bin" "${CMAKE_OPT[@]}" "$proj_dir"
@@ -70,8 +68,7 @@ main_build() {
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
 
     echo "正在编译..."
-    "$cmake_bin" --build . --config Release --parallel 20
-    #make -j20
+    "$cmake_bin" --build . --config Release --parallel $(sysctl -n hw.ncpu)
     if [ $? -ne 0 ]; then
         echo "编译失败!"
         cd - > /dev/null

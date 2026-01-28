@@ -15,7 +15,7 @@ set pack_url=https://github.com/opencv/opencv/archive/4.6.0/opencv-4.6.0.tar.gz
 set pack_file=%pwd_dir%\_download\opencv-4.6.0.tar.gz
 set proj_dir=%pwd_dir%\_download\opencv-4.6.0
 set build_dir=%pwd_dir%\_download\opencv-4.6.0\_build
-set build_out=%pwd_dir%\apk\opencv
+set build_out=%pwd_dir%\apk\opencv\
 if not exist "%base_dir%" mkdir "%base_dir%"
 if not exist "%build_out%" mkdir "%build_out%"
 if not exist "%pack_file%" wget "%pack_url%" -O "%pack_file%"
@@ -31,11 +31,15 @@ set CMAKE_OPT= ^
     -DBUILD_STATIC_LIBS=ON ^
     -DBUILD_SHARED_LIBS=OFF ^
     -DBUILD_opencv_world=ON ^
+    -DBUILD_opencv_apps=OFF ^
+    -DBUILD_opencv_java=OFF ^
+    -DBUILD_opencv_python=OFF ^
     -DOPENCV_FORCE_3RDPARTY_BUILD=ON ^
     -DBUILD_EXAMPLES=OFF ^
     -DBUILD_TESTS=OFF ^
     -DBUILD_PERF_TESTS=OFF ^
     -DBUILD_DOCS=OFF ^
+    -DBUILD_ZLIB=OFF ^
     -DWITH_IPP=ON ^
     -DOPENCV_IPP=ON ^
     -DENABLE_IPPICV=ON ^
@@ -44,13 +48,7 @@ set CMAKE_OPT= ^
     -DBUILD_ANDROID_SERVICE=OFF ^
     -DBUILD_ANDROID_EXAMPLES=OFF ^
     -DBUILD_ANDROID_PROJECTS=OFF ^
-    -DBUILD_opencv_java=OFF ^
-    -DBUILD_opencv_python=OFF ^
-    -DCMAKE_INSTALL_PREFIX=%build_out% ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%build_out%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%build_out%/bin
+    -DCMAKE_INSTALL_PREFIX=%build_out%
 
 :MAIN
 cls
@@ -76,13 +74,25 @@ if not exist "%build_dir%" (
     mkdir "%build_dir%"
 )
 cd "%build_dir%"
-%cmake_bin% -G "Ninja" %proj_dir% %CMAKE_OPT%
+%cmake_bin% -G "Ninja" %CMAKE_OPT% %proj_dir%
+if %errorlevel% neq 0 (
+    echo.ERROR: CMake 配置失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_BUILD
 cd "%build_dir%"
 %cmake_bin% --build . --config Release -j20
+if %errorlevel% neq 0 (
+    echo.ERROR: 编译失败！
+    goto PAUSE_MENU_ERROR
+)
 %cmake_bin% --install . --config Release
+if %errorlevel% neq 0 (
+    echo.ERROR: 安装失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_CLEAN
@@ -93,6 +103,12 @@ goto PAUSE_MENU
 
 :PAUSE_MENU
 echo.操作完成，按任意键返回主菜单!
+cd %pwd_dir%
+pause >nul
+goto MAIN
+
+:PAUSE_MENU_ERROR
+echo.操作失败，按任意键返回主菜单!
 cd %pwd_dir%
 pause >nul
 goto MAIN

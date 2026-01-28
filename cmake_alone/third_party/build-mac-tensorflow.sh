@@ -25,31 +25,29 @@ fi
 if [ ! -d "$proj_dir" ]; then
     tar -xvf "$pack_file" -C "$base_dir" || { echo "解压源码失败!"; exit 1; }
 fi
+cp -f $pwd_dir"/patch/lite/CMakeLists.txt" $proj_dir"/tensorflow/lite/CMakeLists.txt"
 
 # CMAKE选项
 CMAKE_OPT=(
     # 系统选项
+    -DCMAKE_SYSTEM_NAME=Darwin
+    -DCMAKE_OSX_SYSROOT=macosx
     -DCMAKE_OSX_ARCHITECTURES=arm64
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
-    -DCMAKE_SYSTEM_PROCESSOR=arm64
-    -DCMAKE_APPLE_SILICON_PROCESSOR=arm64
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     # 库类型
     -DCMAKE_BUILD_TYPE=Release
     -DBUILD_STATIC_LIBS=ON
     -DBUILD_SHARED_LIBS=OFF
+    -DTFLITE_C_BUILD_SHARED_LIBS=OFF
     # 功能和依赖库
     -DTFLITE_ENABLE_GPU=ON
-    -DTFLITE_C_BUILD_SHARED_LIBS=OFF
+    -DTFLITE_ENABLE_METAL=ON
+    -DFLATBUFFERS_BUILD_FLATC=OFF
     -DTFLITE_ENABLE_XNNPACK=OFF
-    -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=OFF
     # 输出配置
-    #-DCMAKE_POSITION_INDEPENDENT_CODE=ON
-    -DCMAKE_INSTALL_PREFIX="$build_out"
     -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY="$build_out/include"
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$build_out/bin"
+    -DCMAKE_INSTALL_PREFIX="$build_out"
 )
 
 # 主菜单函数
@@ -67,9 +65,12 @@ main_cmake() {
         mkdir -p "$build_dir" || { echo "创建编译目录失败!"; exit 1; }
     fi
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
+    if [ -f "CMakeCache.txt" ]; then
+        rm -f CMakeCache.txt
+    fi
 
     echo "正在cmake..."
-    "$cmake_bin" "${CMAKE_OPT[@]}" "$proj_dir"/tensorflow/lite/c
+    "$cmake_bin" -G Xcode "${CMAKE_OPT[@]}" "$proj_dir"/tensorflow/lite/c
     if [ $? -ne 0 ]; then
         echo "cmake 配置失败!"
         cd - > /dev/null
@@ -85,8 +86,7 @@ main_build() {
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
 
     echo "正在编译..."
-    "$cmake_bin" --build . --config Release --parallel 20
-    #make -j20
+    "$cmake_bin" --build . --config Release --parallel $(sysctl -n hw.ncpu)
     if [ $? -ne 0 ]; then
         echo "编译失败!"
         cd - > /dev/null

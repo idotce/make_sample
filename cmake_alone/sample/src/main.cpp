@@ -79,22 +79,113 @@ LRESULT CALLBACK TempWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 #endif
 
+void print_platform_info() {
+    std::cout << "=== 系统平台信息 ===" << std::endl;
+
+#if defined(_WIN32) || defined(_WIN64)
+    std::cout << "平台: Windows" << std::endl;
+
+    #ifdef _WIN64
+        std::cout << "位数: 64-bit" << std::endl;
+    #else
+        std::cout << "位数: 32-bit" << std::endl;
+    #endif
+
+#elif defined(__APPLE__) && defined(__MACH__)
+    #include <TargetConditionals.h>
+
+    #if TARGET_OS_MAC
+        std::cout << "平台: macOS" << std::endl;
+    #elif TARGET_OS_IPHONE
+        std::cout << "平台: iOS" << std::endl;
+    #else
+        std::cout << "平台: Apple (unknown)" << std::endl;
+    #endif
+
+#elif defined(__ANDROID__)
+    std::cout << "平台: Android" << std::endl;
+
+#elif defined(__linux__)
+    std::cout << "平台: Linux" << std::endl;
+
+#elif defined(__unix__) || defined(__unix)
+    std::cout << "平台: Unix" << std::endl;
+
+#else
+    std::cout << "平台: Other/Unknown" << std::endl;
+#endif
+
+    // 编译器信息
+#ifdef __GNUC__
+    std::cout << "编译器: GCC " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << std::endl;
+#endif
+
+#ifdef __clang__
+    std::cout << "编译器: Clang" << std::endl;
+#endif
+
+#ifdef _MSC_VER
+    std::cout << "编译器: MSVC " << _MSC_VER << std::endl;
+#endif
+}
+
 int main() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 #endif
 
+    print_platform_info();
+
     std::cout << "=== 库功能测试 ===" << std::endl;
 
     bool all_success = true;
 
 #if TEST_CURL
-    std::cout << "\n2. 测试 libcurl..." << std::endl;
+    std::cout << "\n#. 测试 libcurl..." << std::endl;
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    CURL* curl = curl_easy_init();
+    CURL *curl = curl_easy_init();
     if(curl) {
-        std::cout << "   libcurl 初始化成功" << std::endl;
+        // 设置 URL（替换为你的问题服务器）
+        curl_easy_setopt(curl, CURLOPT_URL, "https://cdn.v3d.info/S3dapi/GetPackage?package=com.vstar3d.s3ddemo");
+        // 跳过证书验证
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        // 启用详细输出
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+        // 设置用户代理
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+        // 尝试不同的解决方案
+        // 方案1：尝试不同 TLS 版本
+        // curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_0);
+        // curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_1);
+        // curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+        // curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
+        // 方案2：启用 SNI
+        curl_easy_setopt(curl, CURLOPT_SSL_ENABLE_NPN, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_ENABLE_ALPN, 0L);
+        // 方案3：设置超时
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+        // 方案4：强制使用 IPv4（如果是 IPv6 问题）
+        // curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        printf("尝试连接...\n");
+        CURLcode res = curl_easy_perform(curl);
+        if(res != CURLE_OK) {
+            fprintf(stderr, "错误: %s\n", curl_easy_strerror(res));
+
+            // 更详细的错误信息
+            if(res == CURLE_SSL_CONNECT_ERROR) {
+                fprintf(stderr, "\nSSL 连接失败的常见原因:\n");
+                fprintf(stderr, "1. 服务器使用了不支持的 TLS 版本\n");
+                fprintf(stderr, "2. 服务器要求特定的加密套件\n");
+                fprintf(stderr, "3. 服务器可能使用了自签名证书且需要特定处理\n");
+                fprintf(stderr, "4. 服务器可能要求客户端证书\n");
+                fprintf(stderr, "5. 中间可能有 SSL 拦截设备\n");
+            }
+        } else {
+            printf("\n连接成功！\n");
+        }
         curl_easy_cleanup(curl);
     } else {
         std::cout << "   libcurl 初始化失败" << std::endl;
@@ -104,7 +195,7 @@ int main() {
 #endif
 
 #if TEST_JSON
-    std::cout << "\n3. 测试 jsoncpp..." << std::endl;
+    std::cout << "\n#. 测试 jsoncpp..." << std::endl;
     try {
         Json::Value root;
         root["test"] = "success";
@@ -117,7 +208,7 @@ int main() {
 #endif
 
 #if TEST_OPENCV
-    std::cout << "\n1. 测试 OpenCV..." << std::endl;
+    std::cout << "\n#. 测试 OpenCV..." << std::endl;
     try {
         cv::Mat test_image(100, 100, CV_8UC3, cv::Scalar(0, 255, 0));
         std::cout << "   OpenCV 工作正常 (图像尺寸: " << test_image.cols << "x" << test_image.rows << ")" << std::endl;
@@ -128,7 +219,7 @@ int main() {
 #endif
 
 #if TEST_TENSORFLOW_LITE
-    std::cout << "\n4. 测试 TensorFlow Lite..." << std::endl;
+    std::cout << "\n#. 测试 TensorFlow Lite..." << std::endl;
     try {
         // 输出 TensorFlow Lite 版本信息
         std::cout << "   TensorFlow Lite 版本: " << TFLITE_VERSION_STRING << std::endl;
@@ -192,7 +283,7 @@ int main() {
 #endif
 
 #if TEST_GLEW
-    std::cout << "\n5. 测试 GLEW..." << std::endl;
+    std::cout << "\n#. 测试 GLEW..." << std::endl;
     try {
         // 注意：实际使用中需要先创建OpenGL上下文才能正确初始化GLEW
         // 这里仅做库加载和基本初始化检查

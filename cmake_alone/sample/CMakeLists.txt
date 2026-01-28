@@ -19,27 +19,35 @@ endif()
 # 第三方库目录
 if(WIN32)
     set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/../third_party/win32)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NOT IOS)
     set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/../third_party/macos)
+elseif(IOS)
+    set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/../third_party/ios)
 elseif(ANDROID)
     set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/../third_party/apk)
 endif()
+
+message(STATUS "THIRD_PARTY_DIR: ${THIRD_PARTY_DIR}")
 
 # Curl
 include_directories(${THIRD_PARTY_DIR}/curl/include)
 link_directories(${THIRD_PARTY_DIR}/curl/lib)
 if(WIN32)
     set(CURL_LIBS libcurl)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NOT IOS)
+    set(CURL_LIBS curl)
+elseif(IOS)
+    link_directories(${CMAKE_SOURCE_DIR}/../third_party/patch/openssl_ios/lib)
     set(CURL_LIBS curl)
 elseif(ANDROID)
-    link_directories(${CMAKE_SOURCE_DIR}/../third_party/patch/openssl_arm64/lib)
+    link_directories(${CMAKE_SOURCE_DIR}/../third_party/patch/openssl_apk/lib)
     set(CURL_LIBS curl ssl crypto)
 endif()
 
 # JsonCPP
 include_directories(${THIRD_PARTY_DIR}/jsoncpp/include)
 link_directories(${THIRD_PARTY_DIR}/jsoncpp/lib)
+set(JSONCPP_LIBS "jsoncpp")
 
 # OpenCV
 if(WIN32)
@@ -97,8 +105,8 @@ if(WIN32)
         list(APPEND TFLITE_LIBS ${LIB_NAME})
     endforeach()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    link_directories(${THIRD_PARTY_DIR}/tensorflow/lib)
-    file(GLOB TFLITE_LIBS_RAW "${THIRD_PARTY_DIR}/tensorflow/lib/*.a")
+    link_directories(${THIRD_PARTY_DIR}/tensorflow/lib/Release)
+    file(GLOB TFLITE_LIBS_RAW "${THIRD_PARTY_DIR}/tensorflow/lib/Release/*.a")
     set(TFLITE_LIBS tensorflow-lite)
     foreach(LIB_FILE ${TFLITE_LIBS_RAW})
         get_filename_component(LIB_NAME ${LIB_FILE} NAME)
@@ -123,7 +131,7 @@ if(WIN32)
     set(GLEW_LIBS "glew")
 endif()
 
-#message(STATUS "${TFLITE_LIBS}")
+#message(WARNING "${TFLITE_LIBS}")
 
 # ======================== 主程序配置 ========================
 include_directories(src)
@@ -144,7 +152,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 # 链接库
 target_link_libraries(${PROJECT_NAME}
     ${CURL_LIBS}
-    jsoncpp
+    ${JSONCPP_LIBS}
     ${OPENCV_LIBS}
     ${TFLITE_LIBS}
     ${GLEW_LIBS}
@@ -153,8 +161,10 @@ target_link_libraries(${PROJECT_NAME}
 # 平台相关链接库
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} ws2_32 wldap32 crypt32 iphlpapi secur32 opengl32)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NOT IOS)
     target_link_libraries(${PROJECT_NAME} ldap z /opt/homebrew/lib/libidn2.dylib "-framework CoreFoundation" "-framework SystemConfiguration" "-framework OpenCL")
+elseif(IOS)
+    target_link_libraries(${PROJECT_NAME} ldap z "-framework CoreFoundation" "-framework SystemConfiguration" "-framework OpenCL")
 elseif(ANDROID)
     target_link_libraries(${PROJECT_NAME} log dl)
 endif()

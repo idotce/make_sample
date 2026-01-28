@@ -404,6 +404,19 @@ if(TFLITE_ENABLE_GPU)
     #
     # libmetal_delegate library
     #
+    # Core ML 框架路径
+    set(COREML_FRAMEWORK /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/CoreML.framework)
+
+    # 添加头文件路径
+    include_directories(${COREML_FRAMEWORK}/Headers)
+    include_directories(${COREML_FRAMEWORK}/Headers/mlmodel)
+    include_directories(${COREML_FRAMEWORK}/Headers/mlmodel/format)
+
+    # 链接框架
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework CoreML")
+
+    # 启用 Core ML 委托
+    set(TFLITE_ENABLE_CORE_ML ON)
     enable_language(OBJCXX)
     list(APPEND TFLITE_DELEGATES_METAL_SRCS
       ${TFLITE_SOURCE_DIR}/delegates/gpu/metal_delegate.mm
@@ -415,6 +428,7 @@ if(TFLITE_ENABLE_GPU)
       ${TFLITE_SOURCE_DIR}/delegates/gpu/metal/metal_arguments.cc
       ${TFLITE_SOURCE_DIR}/delegates/gpu/metal/metal_device.cc
       ${TFLITE_SOURCE_DIR}/delegates/gpu/metal/metal_spatial_tensor.cc
+      ${TFLITE_SOURCE_DIR}/delegates/coreml/coreml_delegate.mm
     )
     add_library(metal_delegate STATIC
       ${TFLITE_DELEGATES_METAL_SRCS}

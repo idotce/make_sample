@@ -8,7 +8,7 @@ cmake_bin=cmake
 
 # 工程代码
 base_dir=$pwd_dir/_download
-pack_url=https://github.com/opencv/opencv/archive/4.6.0.tar.gz
+pack_url=https://github.com/opencv/opencv/archive/4.6.0/opencv-4.6.0.tar.gz
 pack_file=$pwd_dir/_download/opencv-4.6.0.tar.gz
 proj_dir=$pwd_dir/_download/opencv-4.6.0
 build_dir=$pwd_dir/_download/opencv-4.6.0/_build
@@ -30,33 +30,30 @@ sed -i '' -e '527s/fp\.h/math.h/' "$proj_dir"/3rdparty/libpng/pngpriv.h
 # CMAKE选项
 CMAKE_OPT=(
     # 系统选项
+    -DCMAKE_SYSTEM_NAME=Darwin
+    -DCMAKE_OSX_SYSROOT=macosx
     -DCMAKE_OSX_ARCHITECTURES=arm64
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
-    -DCMAKE_SYSTEM_PROCESSOR=arm64
-    -DCMAKE_APPLE_SILICON_PROCESSOR=arm64
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
     # 库类型
     -DCMAKE_BUILD_TYPE=Release
     -DBUILD_STATIC_LIBS=ON
     -DBUILD_SHARED_LIBS=OFF
     # 功能和依赖库
     -DBUILD_opencv_world=ON
+    -DBUILD_opencv_apps=OFF
+    -DBUILD_opencv_java=OFF
+    -DBUILD_opencv_python=OFF
     -DOPENCV_FORCE_3RDPARTY_BUILD=ON
     -DBUILD_EXAMPLES=OFF
     -DBUILD_TESTS=OFF
     -DBUILD_PERF_TESTS=OFF
     -DBUILD_DOCS=OFF
-    -DBUILD_opencv_apps=OFF
-    -DBUILD_opencv_java=OFF
-    -DBUILD_opencv_python=OFF
     -DBUILD_ZLIB=OFF
+    -DWITH_IPP=ON
+    -DOPENCV_IPP=ON
+    -DENABLE_IPPICV=ON
     # 输出配置
-    #-DCMAKE_POSITION_INDEPENDENT_CODE=ON
     -DCMAKE_INSTALL_PREFIX="$build_out"
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY="$build_out/include"
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$build_out/bin"
 )
 
 # 主菜单函数
@@ -74,9 +71,12 @@ main_cmake() {
         mkdir -p "$build_dir" || { echo "创建编译目录失败!"; exit 1; }
     fi
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
+    if [ -f "CMakeCache.txt" ]; then
+        rm -f CMakeCache.txt
+    fi
 
     echo "正在cmake..."
-    "$cmake_bin" "${CMAKE_OPT[@]}" "$proj_dir"
+    "$cmake_bin" -G Xcode "${CMAKE_OPT[@]}" "$proj_dir"
     if [ $? -ne 0 ]; then
         echo "cmake 配置失败!"
         cd - > /dev/null
@@ -92,8 +92,7 @@ main_build() {
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
 
     echo "正在编译..."
-    "$cmake_bin" --build . --config Release --parallel 20
-    #make -j20
+    "$cmake_bin" --build . --config Release --parallel $(sysctl -n hw.ncpu)
     if [ $? -ne 0 ]; then
         echo "编译失败!"
         cd - > /dev/null

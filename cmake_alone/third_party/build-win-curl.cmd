@@ -12,7 +12,7 @@ set pack_url=https://curl.se/download/curl-8.16.0.tar.gz
 set pack_file=%pwd_dir%\_download\curl-8.16.0.tar.gz
 set proj_dir=%pwd_dir%\_download\curl-8.16.0
 set build_dir=%pwd_dir%\_download\curl-8.16.0\_build
-set build_out=%pwd_dir%\win32\curl
+set build_out=%pwd_dir%\win32\curl\
 if not exist "%base_dir%" mkdir "%base_dir%"
 if not exist "%build_out%" mkdir "%build_out%"
 if not exist "%pack_file%" wget "%pack_url%" -O "%pack_file%"
@@ -29,11 +29,7 @@ set CMAKE_OPT= ^
     -DCURL_USE_LIBPSL=OFF ^
     -DBUILD_CURL_EXE=OFF ^
     -DBUILD_TESTING=OFF ^
-    -DCMAKE_INSTALL_PREFIX=%build_out% ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%build_out%/include ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%build_out%/bin
+    -DCMAKE_INSTALL_PREFIX=%build_out%
 
 :MAIN
 cls
@@ -59,13 +55,25 @@ if not exist "%build_dir%" (
     mkdir "%build_dir%"
 )
 cd "%build_dir%"
-%cmake_bin% -G "Visual Studio 16 2019" %proj_dir% %CMAKE_OPT%
+%cmake_bin% -G "Visual Studio 16 2019" %CMAKE_OPT% %proj_dir%
+if %errorlevel% neq 0 (
+    echo.ERROR: CMake 配置失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_BUILD
 cd "%build_dir%"
 %cmake_bin% --build . --config Release -j20
+if %errorlevel% neq 0 (
+    echo.ERROR: 编译失败！
+    goto PAUSE_MENU_ERROR
+)
 %cmake_bin% --install . --config Release
+if %errorlevel% neq 0 (
+    echo.ERROR: 安装失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_CLEAN
@@ -76,6 +84,12 @@ goto PAUSE_MENU
 
 :PAUSE_MENU
 echo.操作完成，按任意键返回主菜单!
+cd %pwd_dir%
+pause >nul
+goto MAIN
+
+:PAUSE_MENU_ERROR
+echo.操作失败，按任意键返回主菜单!
 cd %pwd_dir%
 pause >nul
 goto MAIN
