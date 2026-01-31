@@ -85,6 +85,9 @@ main_build() {
     fi
 
     echo "正在安装..."
+    if [ -d "$build_out" ]; then
+        rm -rf "$build_out"
+    fi
     "$cmake_bin" --install . --config Release-iphoneos
     if [ $? -ne 0 ]; then
         echo "安装失败!"

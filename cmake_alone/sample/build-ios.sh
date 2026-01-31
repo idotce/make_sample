@@ -28,6 +28,7 @@ CMAKE_OPT=(
     # 库类型
     -DCMAKE_BUILD_TYPE=Release
     # 功能和依赖库
+    -DCMAKE_MACOSX_BUNDLE=OFF
     # 输出配置
     -DCMAKE_INSTALL_PREFIX="$build_out"
 )
@@ -76,6 +77,9 @@ main_build() {
     fi
 
     echo "正在安装..."
+    if [ -d "$build_out" ]; then
+        rm -rf "$build_out"
+    fi
     "$cmake_bin" --install . --config Release
     if [ $? -ne 0 ]; then
         echo "安装失败!"

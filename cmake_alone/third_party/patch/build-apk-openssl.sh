@@ -4,51 +4,42 @@ set -e
 
 NDK_DIR="/mnt/d/Documents/Android/android-ndk-r27d"
 ANDROID_API=21
-OPENSSL_VERSION="1.1.1t"
+BUILD_VERSION="1.1.1t"
+BUILD_NAME="openssl"
 BUILD_DIR="openssl_apk"
 
-echo "=== 构建 OpenSSL $OPENSSL_VERSION for Android ==="
+echo "=== 构建 $BUILD_DIR $BUILD_VERSION ==="
 
-# 检查NDK目录
 if [ ! -d "$NDK_DIR" ]; then
     echo "❌ 错误: NDK目录不存在 - $NDK_DIR"
     exit 1
 fi
 
-# 清理并创建构建目录
 echo "设置构建目录..."
 if [ -d "$BUILD_DIR" ]; then
     echo "清理现有构建目录..."
     rm -rf "$BUILD_DIR"
 fi
-
-mkdir -p "$BUILD_DIR/include/openssl"
+mkdir -p "$BUILD_DIR/include"
 mkdir -p "$BUILD_DIR/lib"
 mkdir -p "$BUILD_DIR/bin"
-mkdir -p "$BUILD_DIR/ssl"
-mkdir -p "$BUILD_DIR/openssl"
 
 export ANDROID_NDK_HOME="$NDK_DIR"
 TOOLCHAIN="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64"
-
-# 检查工具链
 if [ ! -d "$TOOLCHAIN" ]; then
     echo "❌ 错误: 工具链目录不存在 - $TOOLCHAIN"
     exit 1
 fi
-
 export PATH="$TOOLCHAIN/bin:$PATH"
 
-# 检查OpenSSL源码
-if [ ! -d "openssl-$OPENSSL_VERSION" ]; then
-    echo "❌ 错误: OpenSSL源码目录不存在"
-    echo "请先下载并解压 openssl-$OPENSSL_VERSION.tar.gz"
+if [ ! -d "$BUILD_NAME-$BUILD_VERSION" ]; then
+    echo "❌ 错误: 源码目录不存在"
+    echo "请先下载并解压 $BUILD_NAME-$BUILD_VERSION.tar.gz"
     exit 1
 fi
 
-cd "openssl-$OPENSSL_VERSION"
+cd "$BUILD_NAME-$BUILD_VERSION"
 
-# 设置编译器
 export CC="$TOOLCHAIN/bin/aarch64-linux-android$ANDROID_API-clang"
 export CXX="$TOOLCHAIN/bin/aarch64-linux-android$ANDROID_API-clang++"
 export AR="$TOOLCHAIN/bin/llvm-ar"
@@ -62,12 +53,12 @@ echo "  CC: $CC"
 echo "  AR: $AR"
 echo "  CFLAGS: $CFLAGS"
 
-# 清理
 echo "清理之前的构建..."
 make clean 2>/dev/null || true
+rm -f config.cache
+rm -rf autom4te.cache 2>/dev/null || true
 
-# 配置
-echo "配置 OpenSSL..."
+echo "配置..."
 ./Configure android-arm64 \
     -D__ANDROID_API__=$ANDROID_API \
     --prefix="$(pwd)/../$BUILD_DIR" \
@@ -76,14 +67,12 @@ echo "配置 OpenSSL..."
     no-tests \
     no-asm
 
-# 构建库
-echo "构建 OpenSSL 库..."
+echo "构建..."
 if ! make build_libs -j$(nproc); then
     echo "❌ 构建库失败"
     exit 1
 fi
 
-# 安装头文件
 echo "安装头文件..."
 if [ -d "include/openssl" ]; then
     cp -r include/openssl/* "../$BUILD_DIR/include/openssl/"
@@ -93,7 +82,6 @@ else
     exit 1
 fi
 
-# 安装库文件
 echo "安装库文件..."
 if [ -f "libssl.a" ]; then
     cp libssl.a "../$BUILD_DIR/lib/"
@@ -121,18 +109,11 @@ if [ ! -f "lib/libcrypto.so" ] && [ -f "lib/libcrypto.a" ]; then
 fi
 
 echo ""
-echo "🎉 OpenSSL 构建成功!"
+echo "🎉 构建成功!"
 echo ""
 echo "📁 构建结果:"
-echo "  头文件: $PWD/include/"
-echo "  库文件: $PWD/lib/"
-echo "  SSL配置: $PWD/ssl/"
+echo "  头文件: $(pwd)/../$BUILD_DIR/include/"
+echo "  库文件: $(pwd)/../$BUILD_DIR/lib/"
 echo ""
 
-echo ""
-echo "🔍 验证库文件:"
-file lib/libssl.a
-file lib/libcrypto.a
-
-echo ""
-echo "✅ 所有步骤完成! OpenSSL 已成功构建 for Android ARM64"
+echo "✅ 所有步骤完成!"

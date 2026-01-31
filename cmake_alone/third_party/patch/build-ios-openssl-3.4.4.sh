@@ -3,9 +3,9 @@
 set -e
 
 MIN_IOS_VERSION="12.0"
-BUILD_VERSION="1.1.1t"
+BUILD_VERSION="3.4.4"
 BUILD_NAME="openssl"
-BUILD_DIR="openssl_ios"
+BUILD_DIR="openssl_ios_3.4.4"
 
 echo "=== 构建 $BUILD_DIR $BUILD_VERSION ==="
 

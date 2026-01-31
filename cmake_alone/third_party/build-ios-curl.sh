@@ -30,8 +30,10 @@ fi
 OPENSSL_DIR=$pwd_dir/patch/openssl_ios
 CMAKE_OPT=(
     # 系统选项
-    -DCMAKE_TOOLCHAIN_FILE=$pwd_dir"/patch/apple.toolchain.cmake"
-    -DPLATFORM=OS64
+    -DCMAKE_SYSTEM_NAME=iOS
+    -DCMAKE_OSX_SYSROOT=iphoneos
+    -DCMAKE_OSX_ARCHITECTURES=arm64
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
     # 库类型
     -DCMAKE_BUILD_TYPE=Release
     -DBUILD_STATIC_LIBS=ON
@@ -94,6 +96,9 @@ main_build() {
     fi
 
     echo "正在安装..."
+    if [ -d "$build_out" ]; then
+        rm -rf "$build_out"
+    fi
     "$cmake_bin" --install . --config Release
     if [ $? -ne 0 ]; then
         echo "安装失败!"

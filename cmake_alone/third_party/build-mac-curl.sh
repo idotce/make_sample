@@ -38,8 +38,10 @@ CMAKE_OPT=(
     -DBUILD_STATIC_LIBS=ON
     -DBUILD_SHARED_LIBS=OFF
     # 功能和依赖库
-    -DCURL_USE_SECTRANSP=ON
-    -DCURL_USE_OPENSSL=OFF
+    -DCURL_USE_SCHANNEL=OFF
+    -DCURL_USE_OPENSSL=ON
+    -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
+    -DOPENSSL_USE_STATIC_LIBS=TRUE
     -DCURL_ZLIB=ON
     -DZLIB_ROOT=$(brew --prefix zlib)
     -DZLIB_USE_STATIC_LIBS=TRUE
@@ -94,6 +96,9 @@ main_build() {
     fi
 
     echo "正在安装..."
+    if [ -d "$build_out" ]; then
+        rm -rf "$build_out"
+    fi
     "$cmake_bin" --install . --config Release
     if [ $? -ne 0 ]; then
         echo "安装失败!"

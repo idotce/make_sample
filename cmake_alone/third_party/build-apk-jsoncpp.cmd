@@ -71,6 +71,9 @@ if %errorlevel% neq 0 (
     echo.ERROR: 编译失败！
     goto PAUSE_MENU_ERROR
 )
+if exist "%build_out%" (
+    rd /q /s "%build_out%"
+)
 %cmake_bin% --install . --config Release
 if %errorlevel% neq 0 (
     echo.ERROR: 安装失败！

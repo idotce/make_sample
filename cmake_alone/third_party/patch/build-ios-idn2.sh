@@ -3,9 +3,9 @@
 set -e
 
 MIN_IOS_VERSION="12.0"
-BUILD_VERSION="1.1.1t"
-BUILD_NAME="openssl"
-BUILD_DIR="openssl_ios"
+BUILD_VERSION="2.3.8"
+BUILD_NAME="libidn2"
+BUILD_DIR="libidn2_ios"
 
 echo "=== 构建 $BUILD_DIR $BUILD_VERSION ==="
 
@@ -44,10 +44,8 @@ export CFLAGS="-arch arm64 \
     -fembed-bitcode \
     -O2 \
     -DNDEBUG \
-    -DOPENSSL_NO_ASM \
-    -DOPENSSL_THREADS \
-    -DOPENSSL_NO_SECURE_MEMORY \
     -D__APPLE_USE_RFC_3542"
+export LDFLAGS="-arch arm64 -isysroot $IOS_SDK_PATH -miphoneos-version-min=$MIN_IOS_VERSION"
 
 echo "清理之前的构建..."
 make clean 2>/dev/null || true
@@ -55,16 +53,17 @@ rm -f config.cache
 rm -rf autom4te.cache 2>/dev/null || true
 
 echo "配置..."
-./Configure iphoneos-cross \
+./configure \
+    --host=arm64-apple-ios \
+    --build=$(./config.guess) \
     --prefix="$(pwd)/../$BUILD_DIR" \
-    --openssldir="$(pwd)/../$BUILD_DIR/ssl" \
-    no-shared \
-    no-tests \
-    no-asm \
-    no-hw \
-    no-engine \
-    -isysroot $IOS_SDK_PATH \
-    -miphoneos-version-min=$MIN_IOS_VERSION
+    --disable-shared \
+    --enable-static \
+    --disable-tests \
+    --disable-asm \
+    --disable-hardware-acceleration \
+    --disable-engine \
+    --disable-doc
 
 echo "构建..."
 if ! make -j$(sysctl -n hw.ncpu); then
