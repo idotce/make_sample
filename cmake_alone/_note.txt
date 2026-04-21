@@ -7,3 +7,45 @@ Windows
 
 Android
 链接Opencv或Tflite时要先链接主库，再链接附加库
+
+
+tar --exclude="_build" --exclude="_install" --exclude="_download" -czvf s3dapi_pack.tgz s3dapi_pack
+rsync -a --delete --progress --exclude "_build" --exclude "_install" --exclude "_download" s3dapi_pack user@192.168.1.70:/Users/user/project/
+
+### win&apk ###
+#
+删除这些
+    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%build_out%/lib ^
+    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=%build_out%/lib ^
+    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY=%build_out%/include ^
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%build_out%/bin
+
+### mac&ios ###
+iOS运行提示Killed: 9
+ldid -S test
+chmod +x test
+#
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install cmake pkg-config zlib libidn2
+brew install openssl@3
+#
+#sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+#sudo xcodebuild -license accept
+#echo "SDK路径: $(xcrun --sdk iphoneos --show-sdk-path)"
+从
+    -DCMAKE_SYSTEM_NAME=iOS
+    -DCMAKE_OSX_SYSROOT=iphoneos
+    -DCMAKE_OSX_ARCHITECTURES=arm64
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+    #-DCMAKE_C_FLAGS="-fembed-bitcode"
+    #-DCMAKE_CXX_FLAGS="-fembed-bitcode"
+改
+    -DCMAKE_TOOLCHAIN_FILE=$pwd_dir"/patch/apple.toolchain.cmake"
+    -DPLATFORM=OS64
+    -DDEPLOYMENT_TARGET=12.0
+删除这些
+    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$build_out/lib"
+    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$build_out/lib"
+    -DCMAKE_INCLUDE_OUTPUT_DIRECTORY="$build_out/include"
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$build_out/bin"
+
