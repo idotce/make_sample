@@ -1,7 +1,23 @@
-*.o
-*.d
-*.*project
+# Build / Install / Download
+_build/
+_install/
+_download/
+out/
+build/
+
+# Local / Editor / OS
+.DS_Store
+.idea/
+.vscode/
 *.swp
-*.*.swp
-test
-out
+*.*swp
+*~
+Thumbs.db
+
+# Object files
+*.o
+*.obj
+*.d
+
+# Project legacy filters
+*.*project

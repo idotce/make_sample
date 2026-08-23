@@ -2,6 +2,7 @@
 
 # 系统
 pwd_dir=$(cd `dirname $0`; pwd)
+
 # 代理设置：需要时填写，留空则不启用
 proxy=""
 if [ -n "$proxy" ]; then
@@ -10,34 +11,59 @@ if [ -n "$proxy" ]; then
 fi
 cmake_bin=cmake
 
-# 工程代码
-base_dir=$pwd_dir
-proj_dir=$pwd_dir
-build_dir=$pwd_dir/_build
-build_out=$pwd_dir/_install
+# 源码包
+base_dir=$pwd_dir/_download
+pack_url=https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.17.0.tar.gz
+pack_file=$base_dir/tensorflow-2.17.0.tar.gz
+proj_dir=$base_dir/tensorflow-2.17.0
+build_dir=$proj_dir/_build
+build_out=$pwd_dir/../macos/tensorflow/
 if [ ! -d "$base_dir" ]; then
-    mkdir -p "$base_dir" || { echo "创建基础目录失败!"; exit 1; }
+    mkdir -p "$base_dir" || { echo "创建下载目录失败!"; exit 1; }
 fi
-if [ ! -d "$build_out" ]; then
-    mkdir -p "$build_out" || { echo "创建输出目录失败!"; exit 1; }
+if [ ! -f "$pack_file" ]; then
+    wget "$pack_url" -O "$pack_file" || { echo "下载源码失败!"; exit 1; }
 fi
+if [ ! -d "$proj_dir" ]; then
+    tar -xvf "$pack_file" -C "$base_dir" || { echo "解压源码失败!"; exit 1; }
+fi
+
+# 补丁：覆盖前先备份原文件，已打过则跳过
+apply_patch() {
+    src="$1"; dst="$2"
+    if ! cmp -s "$src" "$dst"; then
+        echo "复制补丁: $src"
+        cp -f "$dst" "$dst.backup"
+        cp -f "$src" "$dst"
+    else
+        echo "文件最新: $src"
+    fi
+}
+apply_patch $pwd_dir"/../patch/lite/CMakeLists.txt"           $proj_dir"/tensorflow/lite/CMakeLists.txt"
+apply_patch $pwd_dir"/../patch/lite/operator.cc"              $proj_dir"/tensorflow/lite/core/c/operator.cc"
+apply_patch $pwd_dir"/../patch/lite/stablehlo_reduce_window.cc" $proj_dir"/tensorflow/lite/kernels/stablehlo_reduce_window.cc"
 
 # CMAKE选项
 CMAKE_OPT=(
     # 系统选项
+    -DCMAKE_SYSTEM_NAME=Darwin
+    -DCMAKE_OSX_SYSROOT=macosx
     -DCMAKE_OSX_ARCHITECTURES=arm64
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
-    -DCMAKE_SYSTEM_PROCESSOR=arm64
-    -DCMAKE_APPLE_SILICON_PROCESSOR=arm64
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     # 库类型
     -DCMAKE_BUILD_TYPE=Release
+    -DBUILD_STATIC_LIBS=ON
+    -DBUILD_SHARED_LIBS=OFF
+    -DTFLITE_C_BUILD_SHARED_LIBS=OFF
     # 功能和依赖库
+    -DTFLITE_ENABLE_GPU=ON
+    -DTFLITE_ENABLE_METAL=ON
+    -DFLATBUFFERS_BUILD_FLATC=OFF
+    -DTFLITE_ENABLE_XNNPACK=OFF
     # 输出配置
-    #-DCMAKE_POSITION_INDEPENDENT_CODE=ON
-    -DCMAKE_INSTALL_PREFIX="$build_out"
     -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$build_out/bin"
+    -DCMAKE_INSTALL_PREFIX="$build_out"
 )
 
 # 主菜单函数
@@ -55,9 +81,12 @@ main_cmake() {
         mkdir -p "$build_dir" || { echo "创建编译目录失败!"; exit 1; }
     fi
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
+    if [ -f "CMakeCache.txt" ]; then
+        rm -f CMakeCache.txt
+    fi
 
     echo "正在cmake..."
-    "$cmake_bin" "${CMAKE_OPT[@]}" "$proj_dir"
+    "$cmake_bin" -G Xcode "${CMAKE_OPT[@]}" "$proj_dir"/tensorflow/lite/c
     if [ $? -ne 0 ]; then
         echo "cmake 配置失败!"
         cd - > /dev/null
@@ -74,7 +103,6 @@ main_build() {
 
     echo "正在编译..."
     "$cmake_bin" --build . --config Release --parallel $(sysctl -n hw.ncpu)
-    #make -j20
     if [ $? -ne 0 ]; then
         echo "编译失败!"
         cd - > /dev/null
@@ -82,6 +110,9 @@ main_build() {
     fi
 
     echo "正在安装..."
+    if [ -d "$build_out" ]; then
+        rm -rf "$build_out"
+    fi
     "$cmake_bin" --install . --config Release
     if [ $? -ne 0 ]; then
         echo "安装失败!"

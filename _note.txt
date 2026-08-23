@@ -1,0 +1,70 @@
+本仓库是 CMake / Makefile / 第三方库编译的通用参考示例，供其他项目拷贝使用。
+
+目录结构
+- cmake/            CMake 工程写法示例
+  - sample/         最小可运行示例
+  - library/        静态/动态库工程 + 使用方示例
+  - mfc/            MFC 工程示例
+  - app-thirdparty/ 完整多平台示例：链接 third_party 编译出的静态库
+- makefile/         通用 Makefile 模板（支持 ARCH=arm64/armv7 交叉编译）
+- third_party/      第三方库编译脚本，详见 third_party/_note.txt
+
+各目录下的 build-windows.cmd / build-macos.sh / build-android.cmd / build-ios.sh
+为对应平台的交互式构建脚本（菜单：cmake/build/clean），路径和代理在脚本头部修改。
+
+构建目录约定：_build（中间产物）、_install（安装输出），均不入库。
+
+==================== 工具链备忘 ====================
+
+### MSVC 版本与 toolset 对照（CMake 片段）
+if(MSVC_VERSION GREATER_EQUAL 1930)
+    # VS 2022 or greater
+    set(MSVC_TOOLSET_VERSION 143)
+elseif(MSVC_VERSION GREATER_EQUAL 1920)
+    # VS 2019 or greater
+    set(MSVC_TOOLSET_VERSION 142)
+elseif(MSVC_VERSION GREATER_EQUAL 1910)
+    # VS 2017 or greater
+    set(MSVC_TOOLSET_VERSION 141)
+elseif(MSVC_VERSION EQUAL 1900)
+    # VS 2015
+    set(MSVC_TOOLSET_VERSION 140)
+elseif(MSVC_VERSION EQUAL 1800)
+    # VS 2013
+    set(MSVC_TOOLSET_VERSION 120)
+elseif(MSVC_VERSION EQUAL 1700)
+    # VS 2012
+    set(MSVC_TOOLSET_VERSION 110)
+elseif(MSVC_VERSION EQUAL 1600)
+    # VS 2010
+    set(MSVC_TOOLSET_VERSION 100)
+elseif(MSVC_VERSION EQUAL 1500)
+    # VS 2008
+    set(MSVC_TOOLSET_VERSION 90)
+elseif(MSVC_VERSION EQUAL 1400)
+    # VS 2005
+    set(MSVC_TOOLSET_VERSION 80)
+else()
+    # We don't support MSVC_TOOLSET_VERSION for earlier compiler.
+endif()
+
+### Linaro 交叉工具链下载
+https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-gnueabi/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabi.tar.xz
+https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-gnueabihf/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+aarch64-linux-gnu-
+apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+-O3 -mcpu=cortex-a53 -Wall
+
+arm-linux-gnueabi-
+apt install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
+-O3 -mcpu=cortex-a7 -mfpu=neon -Wall
+
+arm-linux-gnueabihf-
+apt install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+-O3 -mcpu=cortex-a7 -mfpu=neon -mfloat-abi=hard -Wall
+
+### Android 设备上运行
+adb push test /data/local/tmp
+adb shell "sh -c 'chmod a+x /data/local/tmp/test; /data/local/tmp/test'"

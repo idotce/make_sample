@@ -39,8 +39,9 @@ ifeq ($(OS), Windows_NT)
 	# LIBS = -lsetupapi -lhid
 	LDFLAGS += -static
 	#
+	# Windows 下需在 MSYS2/MinGW/Git Bash 环境运行（依赖 unix 工具）
 	MKDIR = mkdir -p
-	RMDIR = rmdir /s /q
+	RMDIR = rm -rf
 else
 	UNAME_A := $(shell uname -a)
 	ifneq (,$(findstring Darwin, $(UNAME_A)))

@@ -2,6 +2,7 @@
 
 # 系统
 pwd_dir=$(cd `dirname $0`; pwd)
+
 # 代理设置：需要时填写，留空则不启用
 proxy=""
 if [ -n "$proxy" ]; then
@@ -10,34 +11,47 @@ if [ -n "$proxy" ]; then
 fi
 cmake_bin=cmake
 
-# 工程代码
-base_dir=$pwd_dir
-proj_dir=$pwd_dir
-build_dir=$pwd_dir/_build
-build_out=$pwd_dir/_install
+# 源码包
+base_dir=$pwd_dir/_download
+pack_url=https://curl.se/download/curl-8.16.0.tar.gz
+pack_file=$base_dir/curl-8.16.0.tar.gz
+proj_dir=$base_dir/curl-8.16.0
+build_dir=$proj_dir/_build
+build_out=$pwd_dir/../ios/curl/
+
+# 依赖：openssl 需先用 patch/build-ios-openssl.sh 编译好
 if [ ! -d "$base_dir" ]; then
-    mkdir -p "$base_dir" || { echo "创建基础目录失败!"; exit 1; }
+    mkdir -p "$base_dir" || { echo "创建下载目录失败!"; exit 1; }
 fi
-if [ ! -d "$build_out" ]; then
-    mkdir -p "$build_out" || { echo "创建输出目录失败!"; exit 1; }
+if [ ! -f "$pack_file" ]; then
+    wget "$pack_url" -O "$pack_file" || { echo "下载源码失败!"; exit 1; }
+fi
+if [ ! -d "$proj_dir" ]; then
+    tar -xvf "$pack_file" -C "$base_dir" || { echo "解压源码失败!"; exit 1; }
 fi
 
 # CMAKE选项
+OPENSSL_DIR=$pwd_dir/../patch/openssl_ios
 CMAKE_OPT=(
     # 系统选项
-    -DCMAKE_OSX_ARCHITECTURES=arm64
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
-    -DCMAKE_SYSTEM_PROCESSOR=arm64
-    -DCMAKE_APPLE_SILICON_PROCESSOR=arm64
+    -DCMAKE_TOOLCHAIN_FILE=$pwd_dir"/../patch/apple.toolchain.cmake"
+    -DPLATFORM=OS64
     # 库类型
     -DCMAKE_BUILD_TYPE=Release
+    -DBUILD_STATIC_LIBS=ON
+    -DBUILD_SHARED_LIBS=OFF
     # 功能和依赖库
+    -DCURL_USE_SCHANNEL=OFF
+    -DCURL_USE_OPENSSL=ON
+    -DOPENSSL_ROOT_DIR=$OPENSSL_DIR
+    -DOPENSSL_INCLUDE_DIR=$OPENSSL_DIR/include
+    -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_DIR/lib/libcrypto.a
+    -DOPENSSL_SSL_LIBRARY=$OPENSSL_DIR/lib/libssl.a
+    -DCURL_USE_LIBPSL=OFF
+    -DBUILD_CURL_EXE=OFF
+    -DBUILD_TESTING=OFF
     # 输出配置
-    #-DCMAKE_POSITION_INDEPENDENT_CODE=ON
     -DCMAKE_INSTALL_PREFIX="$build_out"
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$build_out/lib"
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$build_out/bin"
 )
 
 # 主菜单函数
@@ -55,9 +69,12 @@ main_cmake() {
         mkdir -p "$build_dir" || { echo "创建编译目录失败!"; exit 1; }
     fi
     cd "$build_dir" || { echo "进入编译目录失败!"; exit 1; }
+    if [ -f "CMakeCache.txt" ]; then
+        rm -f CMakeCache.txt
+    fi
 
     echo "正在cmake..."
-    "$cmake_bin" "${CMAKE_OPT[@]}" "$proj_dir"
+    "$cmake_bin" -G Xcode "${CMAKE_OPT[@]}" "$proj_dir"
     if [ $? -ne 0 ]; then
         echo "cmake 配置失败!"
         cd - > /dev/null
@@ -74,7 +91,6 @@ main_build() {
 
     echo "正在编译..."
     "$cmake_bin" --build . --config Release --parallel $(sysctl -n hw.ncpu)
-    #make -j20
     if [ $? -ne 0 ]; then
         echo "编译失败!"
         cd - > /dev/null
@@ -82,6 +98,9 @@ main_build() {
     fi
 
     echo "正在安装..."
+    if [ -d "$build_out" ]; then
+        rm -rf "$build_out"
+    fi
     "$cmake_bin" --install . --config Release
     if [ $? -ne 0 ]; then
         echo "安装失败!"

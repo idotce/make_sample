@@ -1,0 +1,39 @@
+third_party 目录存放第三方库的编译脚本，按库名分目录，每个脚本独立可用。
+
+目录结构
+- <库名>/build-windows.cmd / build-macos.sh / build-ios.sh / build-android.cmd
+  CMake 方式编译，脚本自动下载源码到本目录 _download/ 下编译
+- ffmpeg x264 ncurses minicom lrzsz file
+  configure/make 方式交叉编译到 aarch64 Linux 板卡（工具链路径在脚本内修改）
+- libnet-ios  iOS 越狱deb包方式移植 libnet（make.sh 接收 tar.gz 参数）
+- ios-generic/make-macios.sh  通用 configure 库移植 iOS 的脚本
+- opencv-arm  海思等 ARM Linux 板卡交叉编译 OpenCV（CMake + toolchain.cmake）
+- patch  源码补丁和工具链文件
+
+编译产物输出约定
+- CMake 库：third_party/<平台>/<库名>/，平台为 win32 macos ios apk
+- 交叉编译库：third_party/_install/aarch64/<prefix>/...
+- app 示例见 cmake/app-thirdparty，其 CMakeLists 按 third_party/<平台>/<库名> 取库
+
+依赖关系与顺序
+1. curl(ios) 需要 patch/build-ios-openssl*.sh 先编出 openssl_ios
+2. minicom 需要 ncurses；ffmpeg 需要 x264
+3. Android 链接 OpenCV/TFLite 时要先链接主库再链接附加库
+
+注意事项
+- Windows 各库统一 MT 运行时 -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+- autotools 移植时 host 要用实际工具链前缀（如 aarch64-linux-gnu），不能用通用 arm-linux
+- prefix 根据开发板不同选择 --prefix=/usr/local 或 --prefix=/userdata
+- iOS 真机运行提示 Killed: 9 时：ldid -S 程序名; chmod +x 程序名
+
+macOS 环境准备
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install cmake pkg-config zlib libidn2 wget
+brew install openssl@3
+#sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+#sudo xcodebuild -license accept
+#echo "SDK路径: $(xcrun --sdk iphoneos --show-sdk-path)"
+
+打包同步参考
+tar --exclude="_download" --exclude="_install" -czvf pack.tgz 目录名
+rsync -a --delete --progress --exclude "_download" --exclude "_install" 目录名 user@host:/path/

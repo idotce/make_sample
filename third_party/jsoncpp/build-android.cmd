@@ -2,6 +2,7 @@
 chcp 65001 >nul
 
 set pwd_dir=%~dp0
+@REM 代理设置：需要时填写，留空则不启用
 set "proxy="
 if not "%proxy%"=="" (
     set http_proxy=%proxy%
@@ -9,16 +10,19 @@ if not "%proxy%"=="" (
 )
 set "cmake_dir=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
 set "ndk_dir=d:\Documents\Android\Sdk\ndk\21.0.6113669"
-set cmake_bin=d:\Documents\Android\Sdk\cmake\3.18.1\bin\cmake.exe
+set cmake_bin=%cmake_dir%\cmake.exe
 set "PATH=%cmake_dir%;%PATH%"
 
-@REM 工程代码
-set base_dir=%pwd_dir%
-set proj_dir=%pwd_dir%
-set build_dir=%pwd_dir%\_build
-set build_out=%pwd_dir%\_install
+@REM 源码包
+set base_dir=%pwd_dir%_download
+set pack_url=https://github.com/open-source-parsers/jsoncpp/archive/1.9.6.tar.gz
+set pack_file=%pwd_dir%_download\jsoncpp-1.9.6.tar.gz
+set proj_dir=%pwd_dir%_download\jsoncpp-1.9.6
+set build_dir=%pwd_dir%_download\jsoncpp-1.9.6\_build
+set build_out=%pwd_dir%..\apk\jsoncpp\
 if not exist "%base_dir%" mkdir "%base_dir%"
-if not exist "%build_out%" mkdir "%build_out%"
+if not exist "%pack_file%" curl -L "%pack_url%" -o "%pack_file%"
+if not exist "%proj_dir%" tar -xvf "%pack_file%" -C "%base_dir%"
 
 @REM CMAKE选项
 set CMAKE_OPT= ^
@@ -27,10 +31,10 @@ set CMAKE_OPT= ^
     -DANDROID_ABI=arm64-v8a ^
     -DANDROID_PLATFORM=android-21 ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_INSTALL_PREFIX=%build_out% ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%build_out%/bin
+    -DBUILD_STATIC_LIBS=ON ^
+    -DBUILD_SHARED_LIBS=OFF ^
+    -DJSONCPP_WITH_TESTS=OFF ^
+    -DCMAKE_INSTALL_PREFIX=%build_out%
 
 :MAIN
 cls
@@ -56,13 +60,28 @@ if not exist "%build_dir%" (
     mkdir "%build_dir%"
 )
 cd "%build_dir%"
-%cmake_bin% -G "Ninja" %proj_dir% %CMAKE_OPT%
+%cmake_bin% -G "Ninja" %CMAKE_OPT% %proj_dir%
+if %errorlevel% neq 0 (
+    echo.ERROR: CMake 配置失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_BUILD
 cd "%build_dir%"
 %cmake_bin% --build . --config Release -j20
+if %errorlevel% neq 0 (
+    echo.ERROR: 编译失败！
+    goto PAUSE_MENU_ERROR
+)
+if exist "%build_out%" (
+    rd /q /s "%build_out%"
+)
 %cmake_bin% --install . --config Release
+if %errorlevel% neq 0 (
+    echo.ERROR: 安装失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_CLEAN
@@ -77,4 +96,8 @@ cd %pwd_dir%
 pause >nul
 goto MAIN
 
-goto :eof
+:PAUSE_MENU_ERROR
+echo.操作失败，按任意键返回主菜单!
+cd %pwd_dir%
+pause >nul
+goto MAIN

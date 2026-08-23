@@ -7,7 +7,10 @@ if not "%proxy%"=="" (
     set http_proxy=%proxy%
     set https_proxy=%proxy%
 )
-set cmake_bin=c:\cmake\bin\cmake.exe
+set "cmake_dir=d:\Documents\Android\Sdk\cmake\3.18.1\bin"
+set "ndk_dir=d:\Documents\Android\Sdk\ndk\21.0.6113669"
+set cmake_bin=d:\Documents\Android\Sdk\cmake\3.18.1\bin\cmake.exe
+set "PATH=%cmake_dir%;%PATH%"
 
 @REM 工程代码
 set base_dir=%pwd_dir%
@@ -19,12 +22,12 @@ if not exist "%build_out%" mkdir "%build_out%"
 
 @REM CMAKE选项
 set CMAKE_OPT= ^
-    -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
+    -DCMAKE_TOOLCHAIN_FILE=%ndk_dir%\build\cmake\android.toolchain.cmake ^
+    -DCMAKE_MAKE_PROGRAM=ninja ^
+    -DANDROID_ABI=arm64-v8a ^
+    -DANDROID_PLATFORM=android-21 ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_INSTALL_PREFIX=%build_out% ^
-    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=%build_out%/lib ^
-    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%build_out%/bin
+    -DCMAKE_INSTALL_PREFIX=%build_out%
 
 :MAIN
 cls
@@ -50,13 +53,28 @@ if not exist "%build_dir%" (
     mkdir "%build_dir%"
 )
 cd "%build_dir%"
-%cmake_bin% -G "Visual Studio 16 2019" %proj_dir% %CMAKE_OPT%
+%cmake_bin% -G "Ninja" %CMAKE_OPT% %proj_dir%
+if %errorlevel% neq 0 (
+    echo.ERROR: CMake 配置失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_BUILD
 cd "%build_dir%"
 %cmake_bin% --build . --config Release -j20
+if %errorlevel% neq 0 (
+    echo.ERROR: 编译失败！
+    goto PAUSE_MENU_ERROR
+)
+if exist "%build_out%" (
+    rd /q /s "%build_out%"
+)
 %cmake_bin% --install . --config Release
+if %errorlevel% neq 0 (
+    echo.ERROR: 安装失败！
+    goto PAUSE_MENU_ERROR
+)
 goto PAUSE_MENU
 
 :MAIN_CLEAN
@@ -67,6 +85,12 @@ goto PAUSE_MENU
 
 :PAUSE_MENU
 echo.操作完成，按任意键返回主菜单!
+cd %pwd_dir%
+pause >nul
+goto MAIN
+
+:PAUSE_MENU_ERROR
+echo.操作失败，按任意键返回主菜单!
 cd %pwd_dir%
 pause >nul
 goto MAIN
